@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"name": "Smart_Billboard",
+			"path": "/home/vmlopez336/Documents/PlatformIO/Projects/Smart_Billboard"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"arduino.h": "c",
+			"esp_spi_flash.h": "c"
+		}
+	}
+}
