@@ -46,7 +46,7 @@ void onWebSocketEvent(uint8_t num,
       } else if (!strcmp("read", (const char *)buffer)){
         clearBuffer(buffer,4);
         readfile(SD, buffer, webSocket, num,  (payload+4));
-        Serial.printf("finished reading option\n");
+        Serial.printf("finished reading file\n");
       } else if(!strcmp("save", (const char*)buffer)){
         clearBuffer(buffer,4);
         std::string filename = extractFilename(payload+4);
@@ -124,6 +124,7 @@ void setup(){
     delay(1000);
     Serial.println("Connecting to WiFi..");
   }
+
   // HTTP access points
   Serial.println(WiFi.localIP());
 

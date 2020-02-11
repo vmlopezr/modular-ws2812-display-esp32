@@ -1,6 +1,6 @@
 #include "Filesystem.h"
 
-void clearBuffer(uint8_t *buffer, uint8_t length){
+void clearBuffer(uint8_t *buffer, uint16_t length){
   memset(buffer, '\0', length);
 }
 // Return list of all files in root directory
@@ -58,12 +58,36 @@ void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &cli
         }
         server.sendTXT(client, (const char*)buffer);
         data_Available = file.available();
-        Serial.printf("sending data\n");
+        // Serial.printf("sending data\n");
     }
     /* Send "End" of data  */
     server.sendTXT(client, "EX1T");
     file.close();
 }
+void readfileSize(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &client, uint8_t * filename){
+    File file = fs.open((const char *)filename);
+
+
+    // Retrieve the size of the file
+    if(!file){
+        Serial.println("Failed to open file for reading");
+        server.sendTXT(client, "File could not be opened.");
+        return;
+    }
+    uint i = 0;
+    do {
+        buffer[i] = file.read();
+        if(buffer[i] == '\n'){
+            break;
+        } else{
+            i++;
+            buffer[i]= file.read();
+        }
+    } while (file.available());
+    server.sendTXT(client, (const char*)buffer);
+    file.close();
+}
+
 std::string extractFilename(uint8_t * payload){
     std::string filename;
 
