@@ -4,23 +4,27 @@ void clearBuffer(uint8_t *buffer, uint16_t length){
   memset(buffer, '\0', length);
 }
 // Return list of all files in root directory
-const char * listRootDir(fs::FS &fs){
+const char * listRootDir(fs::FS &fs, uint8_t * buffer){
     std::string DirList = "";
+    uint16_t charsRead;
     File root = fs.open("/");
     if(!root){
         Serial.println("Failed to open directory");
-        return "\0";
+        return "No file";
     }
+
     File file = root.openNextFile();
     do {
         if(!file.isDirectory()){
-            Serial.printf("%s ",file.name());
-            DirList.append(file.name());
-            DirList.append(",");
+            DirList+=file.name();
+            DirList+=",";
+            charsRead = readfileSize(SD,buffer,file);
+            DirList+= (const char *)buffer;
+            clearBuffer(buffer, charsRead);
+            DirList+=",";
         }
         file = root.openNextFile();
     } while(file);
-    Serial.printf("\n");
     file.close();
     root.close();
 
@@ -38,17 +42,28 @@ std::string to_string(unsigned int number){
 }
 void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &client, uint8_t * filename){
     File file = fs.open((const char *)filename);
-
-    // Retrieve the size of the file
-    unsigned int data_Available = file.available();
-
+    char temp;
+    // Serial.printf("inside read function\n");
     if(!file){
-        Serial.println("Failed to open file for reading");
+        Serial.printf("Failed to open file for reading\n");
         server.sendTXT(client, "File could not be opened.");
         return;
     }
-    server.sendTXT(client, to_string(data_Available).c_str());
+    // Serial.printf("file opened\n");
+    // Retrieve the size of the file
+    unsigned int data_Available = file.available();
 
+    // Move file point to the second line.
+    do {
+        temp = file.read();
+        if( temp == '\n' || temp == '\r'){
+            // Serial.println("read first line\n");
+            break;
+        }
+    } while (file.available());
+
+    data_Available = file.available();
+    // Read the rest of the data and send it to the phone
     while(data_Available){
         clearBuffer(buffer, MAX_BUFFER_SIZE-1);
         if( data_Available < MAX_BUFFER_SIZE-1){
@@ -58,34 +73,23 @@ void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &cli
         }
         server.sendTXT(client, (const char*)buffer);
         data_Available = file.available();
-        // Serial.printf("sending data\n");
     }
     /* Send "End" of data  */
     server.sendTXT(client, "EX1T");
     file.close();
 }
-void readfileSize(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &client, uint8_t * filename){
-    File file = fs.open((const char *)filename);
-
-
-    // Retrieve the size of the file
-    if(!file){
-        Serial.println("Failed to open file for reading");
-        server.sendTXT(client, "File could not be opened.");
-        return;
-    }
-    uint i = 0;
+uint16_t readfileSize(fs::FS &fs, uint8_t * buffer, File &file){
+    uint16_t i =0;
     do {
         buffer[i] = file.read();
-        if(buffer[i] == '\n'){
-            break;
-        } else{
+        if( buffer[i] != '\r' && buffer[i] != '\n'){
             i++;
-            buffer[i]= file.read();
+        } else{
+            buffer[i] = '\0';
+            break;
         }
     } while (file.available());
-    server.sendTXT(client, (const char*)buffer);
-    file.close();
+    return i;
 }
 
 std::string extractFilename(uint8_t * payload){
@@ -101,36 +105,43 @@ void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t cl
     File file = fs.open(filename, FILE_WRITE);
     if(!file){
         Serial.println("Failed to open file for writing");
-        server.sendTXT(client, "Failed to open file for writing");
+        server.sendTXT(client, "error");
         return;
     }
     if(!file.print((const char *)payload)){
-        Serial.printf("could not write to file\n");
-        server.sendTXT(client,"Could not write the file");
-    }
+        file.close();
 
-    server.sendTXT(client, "Finished writing file");
+        Serial.printf("could not write to file\n");
+        server.sendTXT(client,"writeError");
+        deletefile(fs, filename);
+        return;
+    }
+    Serial.printf("success\n");
+    server.sendTXT(client, "success");
 
     file.close();
 }
-// void appendfile(fs::FS &fs, const char * path, const char * message){
-//     Serial.printf("Appending to file: %s\n", path);
+void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload){
+    Serial.printf("Appending to file: %s\n", filename);
+    File file = fs.open(filename, FILE_APPEND);
 
-//     File file = fs.open(path, FILE_APPEND);
-//     if(!file){
-//         Serial.println("Failed to open file for appending");
-//         return;
-//     }
-//     if(file.print(message)){
-//         Serial.println("Message appended");
-//     } else {
-//         Serial.println("Append failed");
-//     }
-//     file.close();
-// }
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        server.sendTXT(client, "error");
+        return;
+    }
+    if(file.print((const char *)payload)){
+        Serial.println("Message appended");
+        server.sendTXT(client, "success");
+    } else {
+        Serial.println("Append failed");
+        server.sendTXT(client,"writeError");
+    }
+    file.close();
+}
 
 void renamefile(fs::FS &fs, const char * path1, const char * path2){
-    Serial.printf("Renaming file %s to %s\n", path1, path2);
+    // Serial.printf("Renaming file %s to %s\n", path1, path2);
     if (fs.rename(path1, path2)) {
         Serial.println("File renamed");
     } else {
@@ -139,7 +150,7 @@ void renamefile(fs::FS &fs, const char * path1, const char * path2){
 }
 
 void deletefile(fs::FS &fs, const char * path){
-    Serial.printf("Deleting file: %s\n", path);
+    // Serial.printf("Deleting file: %s\n", path);
     if(fs.remove(path)){
         Serial.println("File deleted");
     } else {
