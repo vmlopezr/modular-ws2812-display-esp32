@@ -43,13 +43,12 @@ std::string to_string(unsigned int number){
 void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &client, uint8_t * filename){
     File file = fs.open((const char *)filename);
     char temp;
-    // Serial.printf("inside read function\n");
+
     if(!file){
         Serial.printf("Failed to open file for reading\n");
         server.sendTXT(client, "File could not be opened.");
         return;
     }
-    // Serial.printf("file opened\n");
     // Retrieve the size of the file
     unsigned int data_Available = file.available();
 
@@ -57,12 +56,12 @@ void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &cli
     do {
         temp = file.read();
         if( temp == '\n' || temp == '\r'){
-            // Serial.println("read first line\n");
             break;
         }
     } while (file.available());
 
     data_Available = file.available();
+
     // Read the rest of the data and send it to the phone
     while(data_Available){
         clearBuffer(buffer, MAX_BUFFER_SIZE-1);
@@ -100,48 +99,52 @@ std::string extractFilename(uint8_t * payload){
     filename.assign((const char *) payload, (occurrence + 5) - (char *)(payload+1));
     return filename;
 }
-void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload){
+/* Write File*/
+void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char * suffix){
 
     File file = fs.open(filename, FILE_WRITE);
+
     if(!file){
         Serial.println("Failed to open file for writing");
-        server.sendTXT(client, "error");
+        server.sendTXT(client, "FERR");
         return;
     }
     if(!file.print((const char *)payload)){
         file.close();
-
         Serial.printf("could not write to file\n");
-        server.sendTXT(client,"writeError");
+        server.sendTXT(client,"WERR");
         deletefile(fs, filename);
         return;
     }
-    Serial.printf("success\n");
-    server.sendTXT(client, "success");
-
+    if(!strcmp("EX1T", suffix)){
+        server.sendTXT(client, "SUXS");
+    }
     file.close();
 }
-void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload){
-    Serial.printf("Appending to file: %s\n", filename);
+
+/* Append to file to finish writing data. */
+void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char * suffix){
     File file = fs.open(filename, FILE_APPEND);
 
     if(!file){
         Serial.println("Failed to open file for appending");
-        server.sendTXT(client, "error");
+        server.sendTXT(client, "FERR");
         return;
     }
-    if(file.print((const char *)payload)){
-        Serial.println("Message appended");
-        server.sendTXT(client, "success");
-    } else {
+    if(!file.print((const char *)payload)){
         Serial.println("Append failed");
-        server.sendTXT(client,"writeError");
+        file.close();
+        server.sendTXT(client,"WERR");
+        return;
+    }
+    if(!strcmp("EX1T", suffix)){
+        server.sendTXT(client, "SUXS");
     }
     file.close();
 }
 
 void renamefile(fs::FS &fs, const char * path1, const char * path2){
-    // Serial.printf("Renaming file %s to %s\n", path1, path2);
+
     if (fs.rename(path1, path2)) {
         Serial.println("File renamed");
     } else {
@@ -150,7 +153,6 @@ void renamefile(fs::FS &fs, const char * path1, const char * path2){
 }
 
 void deletefile(fs::FS &fs, const char * path){
-    // Serial.printf("Deleting file: %s\n", path);
     if(fs.remove(path)){
         Serial.println("File deleted");
     } else {
