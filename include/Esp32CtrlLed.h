@@ -26,14 +26,16 @@ public:
   uint32_t NUM_LEDS;
   size_t LED_BUFFER_SIZE;
   gpio_num_t LED_CTRL_PIN;
+  uint8_t Brightness;
 
   Esp32CtrlLed(void);
   Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin);
+  Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin, uint8_t brightness);
   ~Esp32CtrlLed();
 
   // Set specific pin
   void setPin(gpio_num_t pin);
-
+  void setBrightness(uint8_t brightness);
   // Change the length of the led array
   void updateLength(uint32_t length);
 

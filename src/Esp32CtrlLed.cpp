@@ -5,11 +5,17 @@
  * */
 #include "Esp32CtrlLed.h"
 
-Esp32CtrlLed::Esp32CtrlLed(void): LedData(NULL), NUM_LEDS(0), LED_CTRL_PIN(GPIO_NUM_4) {}
+Esp32CtrlLed::Esp32CtrlLed(void): LedData(NULL), NUM_LEDS(0), LED_CTRL_PIN(GPIO_NUM_4), Brightness(0) {}
 
-Esp32CtrlLed::Esp32CtrlLed(uint16_t LedNum, gpio_num_t pin):   LedData(NULL), NUM_LEDS(LedNum), LED_CTRL_PIN(pin) {
+Esp32CtrlLed::Esp32CtrlLed(uint16_t LedNum, gpio_num_t pin):   LedData(NULL), NUM_LEDS(LedNum), Brightness(0) {
   updateLength(NUM_LEDS);
   setPin(pin);
+}
+
+Esp32CtrlLed::Esp32CtrlLed(uint16_t LedNum, gpio_num_t pin, uint8_t brightness): LedData(NULL), NUM_LEDS(LedNum) {
+  updateLength(NUM_LEDS);
+  setPin(pin);
+  setBrightness(brightness);
 }
 
 Esp32CtrlLed::~Esp32CtrlLed() {
@@ -20,6 +26,11 @@ void Esp32CtrlLed::setPin(gpio_num_t pin){
   LED_CTRL_PIN = pin;
 }
 
+void Esp32CtrlLed::setBrightness(uint8_t brightness){
+  if(brightness <= 255){
+    Brightness = brightness;
+  }
+}
 /* Update the size of LedData array                     */
 void Esp32CtrlLed::updateLength(size_t Led_Num) {
   delete[] LedData;
@@ -60,7 +71,8 @@ void Esp32CtrlLed::ESP32_RMT_Init(void) {
 
 /* Update the WS2812 Leds with the new data.                      */
 void Esp32CtrlLed::write_leds() {
-  ESP_ERROR_CHECK(rmt_write_items(LED_RMT_TX_CHANNEL, LedData, LED_BUFFER_SIZE, true));
+  ESP_ERROR_CHECK(rmt_write_items(LED_RMT_TX_CHANNEL, LedData, LED_BUFFER_SIZE, false));
+  ESP_ERROR_CHECK(rmt_wait_tx_done(LED_RMT_TX_CHANNEL, portMAX_DELAY));
 }
 
 /* Clear all Leds                                                */

@@ -7,15 +7,21 @@
 #include "SPI.h"
 #include "WiFi.h"
 #include "WebSocketsServer.h"
+#include "Globals.h"
 
-#define MAX_BUFFER_SIZE 6500
-void clearBuffer(uint8_t *buffer, uint16_t length);
-const char * listRootDir(fs::FS &fs, uint8_t * buffer);
+// clearBuffer can be re-used for any array
+void clearBuffer(uint8_t *array ,uint16_t length);
+
+// The functions below depend on global data from Globals.h.
+// These are defined in main.cpp. The functions are used solely for this project.
+// They may not have reusability without some tweaking.
+const char * listRootDir();
 std::string extractFilename(uint8_t * payload);
-void readfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t &client,uint8_t * filename);
-uint16_t readfileSize(fs::FS &fs, uint8_t * buffer, File &fileptr);
-void writefile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char* suffix);
-void renamefile(fs::FS &fs, const char * path1, const char * path2);
-void deletefile(fs::FS &fs, const char * path);
-void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char * suffix);
+void readfile(uint8_t &client,uint8_t * filename);
+uint16_t readfileSize(File &fileptr);
+void writefile(uint8_t client, const char * filename, uint8_t * payload, const char* suffix);
+void renamefile(const char *path1, const char * path2);
+void deletefile(const char *path);
+void appendfile(uint8_t client, const char * filename, uint8_t * payload, const char * suffix);
+
 #endif

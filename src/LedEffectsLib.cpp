@@ -12,10 +12,7 @@ void HorizontalLine(Esp32CtrlLed &matrix, uint8_t rowindex, uint8_t previndex, u
   }
 }
 
-void test(){
-  Serial.printf("value in function: %d\n", testValue);
-}
-void test1(){
-  testValue++;
-  Serial.printf("value in function: %d\n", testValue);
+void SinglePixel(uint8_t rowindex, uint8_t previndex, uint32_t color){
+      matrix.setPixelRGB( previndex, 0);
+      matrix.setPixelRGB( rowindex, color);
 }

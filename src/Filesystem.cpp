@@ -1,13 +1,14 @@
 #include "Filesystem.h"
 
-void clearBuffer(uint8_t *buffer, uint16_t length){
-  memset(buffer, '\0', length);
+void clearBuffer(uint8_t *array, uint16_t length){
+  memset(array, '\0', length);
 }
 // Return list of all files in root directory
-const char * listRootDir(fs::FS &fs, uint8_t * buffer){
+const char * listRootDir(){
     std::string DirList = "";
     uint16_t charsRead;
-    File root = fs.open("/");
+
+    File root = SD.open("/");
     if(!root){
         Serial.println("Failed to open directory");
         return "No file";
@@ -18,9 +19,9 @@ const char * listRootDir(fs::FS &fs, uint8_t * buffer){
         if(!file.isDirectory()){
             DirList+=file.name();
             DirList+=",";
-            charsRead = readfileSize(SD,buffer,file);
-            DirList+= (const char *)buffer;
-            clearBuffer(buffer, charsRead);
+            charsRead = readfileSize(file);
+            DirList+= (const char *)appDataBuffer;
+            clearBuffer(appDataBuffer, charsRead);
             DirList+=",";
         }
         file = root.openNextFile();
@@ -40,8 +41,8 @@ std::string to_string(unsigned int number){
     }
     return temp;
 }
-void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &client, uint8_t * filename){
-    File file = fs.open((const char *)filename);
+void readfile(uint8_t &client, uint8_t * filename){
+    File file = SD.open((const char *)filename);
     char temp;
 
     if(!file){
@@ -61,37 +62,36 @@ void readfile(fs::FS &fs,uint8_t *buffer, WebSocketsServer &server, uint8_t &cli
     } while (file.available());
 
     data_Available = file.available();
-
     // Read the rest of the data and send it to the phone
     while(data_Available){
-        clearBuffer(buffer, MAX_BUFFER_SIZE-1);
+        clearBuffer(appDataBuffer, MAX_BUFFER_SIZE-1);
         if( data_Available < MAX_BUFFER_SIZE-1){
-            file.read(buffer, (size_t)data_Available);
+            file.read(appDataBuffer, (size_t)data_Available);
         } else {
-            file.read(buffer, MAX_BUFFER_SIZE-1);
+            file.read(appDataBuffer, MAX_BUFFER_SIZE-1);
         }
-        server.sendTXT(client, (const char*)buffer);
+        server.sendTXT(client, (const char*)appDataBuffer);
         data_Available = file.available();
     }
     /* Send "End" of data  */
     server.sendTXT(client, "EX1T");
     file.close();
 }
-uint16_t readfileSize(fs::FS &fs, uint8_t * buffer, File &file){
+uint16_t readfileSize(File &file){
     uint16_t i =0;
     do {
-        buffer[i] = file.read();
-        if( buffer[i] != '\r' && buffer[i] != '\n'){
+        appDataBuffer[i] = file.read();
+        if( appDataBuffer[i] != '\r' && appDataBuffer[i] != '\n'){
             i++;
         } else{
-            buffer[i] = '\0';
+            appDataBuffer[i] = '\0';
             break;
         }
     } while (file.available());
     return i;
 }
 
-std::string extractFilename(uint8_t * payload){
+std::string extractFilename(uint8_t *payload){
     std::string filename;
 
     // Retrieve the filename
@@ -100,9 +100,9 @@ std::string extractFilename(uint8_t * payload){
     return filename;
 }
 /* Write File*/
-void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char * suffix){
+void writefile(uint8_t client, const char *filename, uint8_t *payload, const char *suffix){
 
-    File file = fs.open(filename, FILE_WRITE);
+    File file = SD.open(filename, FILE_WRITE);
 
     if(!file){
         Serial.println("Failed to open file for writing");
@@ -113,7 +113,7 @@ void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t cl
         file.close();
         Serial.printf("could not write to file\n");
         server.sendTXT(client,"WERR");
-        deletefile(fs, filename);
+        deletefile(filename);
         return;
     }
     if(!strcmp("EX1T", suffix)){
@@ -123,8 +123,8 @@ void writefile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t cl
 }
 
 /* Append to file to finish writing data. */
-void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t client, const char * filename, uint8_t * payload, const char * suffix){
-    File file = fs.open(filename, FILE_APPEND);
+void appendfile(uint8_t client, const char *filename, uint8_t *payload, const char *suffix){
+    File file = SD.open(filename, FILE_APPEND);
 
     if(!file){
         Serial.println("Failed to open file for appending");
@@ -143,17 +143,17 @@ void appendfile(fs::FS &fs, uint8_t *buffer, WebSocketsServer &server, uint8_t c
     file.close();
 }
 
-void renamefile(fs::FS &fs, const char * path1, const char * path2){
+void renamefile(const char *path1, const char *path2){
 
-    if (fs.rename(path1, path2)) {
+    if (SD.rename(path1, path2)) {
         Serial.println("File renamed");
     } else {
         Serial.println("Rename failed");
     }
 }
 
-void deletefile(fs::FS &fs, const char * path){
-    if(fs.remove(path)){
+void deletefile(const char *path){
+    if(SD.remove(path)){
         Serial.println("File deleted");
     } else {
         Serial.println("Delete failed");
