@@ -31,6 +31,7 @@ const char * listRootDir(){
 
     // remove last comma
     DirList.pop_back();
+
     return DirList.c_str();
 }
 std::string to_string(unsigned int number){

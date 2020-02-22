@@ -48,7 +48,8 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
       } else if (!strcmp("size",(const char *)appDataBuffer)){
 
         updateDisplaySize((const char *)(payload+4), height, width);
-        Serial.printf("New Display Size\n Height: %d, Width: %d\n", height, width);
+        matrix.updateLength(height*width);
+        // Serial.printf("New Display Size\n Height: %d, Width: %d\n", height, width);
       }
       else if(!strcmp("save", (const char*)appDataBuffer)){
 
@@ -68,15 +69,21 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
       } else if(!strcmp("LIVE",(const char*)appDataBuffer)){
 
-        liveInputAction(payload);
+        liveInputState(payload);
 
+      } else if(!strcmp("CLRI", (const char*)appDataBuffer)){
+        clearLiveInput();
+      }else if(!strcmp("EXLI", (const char*)appDataBuffer)){
+        exitLiveInputState();
+      }else if(!strcmp("INPT", (const char*)appDataBuffer)){
+        receivedLiveInput(payload);
       } else if(!strcmp("STLI", (const char *)appDataBuffer)){
 
         clearFrameAction();
 
       } else if(!strcmp("ANIM", (const char *)appDataBuffer)){
 
-        lineAnimationAction();
+        AnimationAction((const char *)(payload+4));
 
       } else {
           server.sendTXT(num, payload);
@@ -150,7 +157,7 @@ void appendFileAction(uint8_t num, size_t length, uint8_t * payload ){
   appendfile(num, filename.c_str(), (payload+4+filename.length()), suffix.c_str());
 }
 
-void liveInputAction( uint8_t * payload){
+void liveInputState( uint8_t * payload){
   if(defaultState || AnimationRunning){
     defaultState = false;
     AnimationRunning = false;
@@ -158,26 +165,51 @@ void liveInputAction( uint8_t * payload){
   strncpy((char *) stateMachine, "LIVE", 4);
   listenLiveInput = true;
   appInput = true;
-}
 
+}
+void receivedLiveInput(uint8_t * payload){
+  clearBuffer(appDataBuffer,strlen((const char *) payload));
+  strncpy((char *)appDataBuffer, (const char*)(payload+4), strlen((const char *)payload+4));
+
+  receivedLiveData = true;
+  while(bufferLock){
+    delay(5);
+  }
+}
 void clearFrameAction(){
   // Clear the display
-  if (defaultState || AnimationRunning || listenLiveInput){
+  appInput = true;
+  if (defaultState || AnimationRunning){
     defaultState = false;
     AnimationRunning = false;
-    listenLiveInput = false;
   }
   strncpy((char *) stateMachine, "CLCR", 4);
+
+}
+void exitLiveInputState() {
+  if(listenLiveInput){
+    listenLiveInput = false;
+    receivedLiveData =false;
+    defaultState = false;
+    AnimationRunning = false;
+  }
+  strncpy((char *)stateMachine, "CLCR", 4);
   appInput = true;
 }
-
-void lineAnimationAction(){
+void clearLiveInput() {
+  strncpy((char *)stateMachine, "CLRI",4);
+  listenLiveInput = false;
+  appInput = true;
+}
+void AnimationAction(const char * animationLabel){
+  AnimationRunning = true;
   if (defaultState || listenLiveInput){
     defaultState = false;
     listenLiveInput = false;
   }
 
+  strncpy((char*)animation, animationLabel, 4);
   strncpy((char *)stateMachine, "ANIM", 4);
-  AnimationRunning = true;
+
   appInput = true;
 }

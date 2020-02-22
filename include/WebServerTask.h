@@ -9,7 +9,10 @@ void updateDisplaySize(const char * data, size_t &height, size_t &width);
 void readFileAction(uint8_t num, uint8_t * payload );
 void writeFileAction(uint8_t num, size_t length, uint8_t * payload );
 void appendFileAction(uint8_t num, size_t length, uint8_t * payload );
-void liveInputAction( uint8_t * payload);
+void liveInputState( uint8_t * payload);
+void clearLiveInput();
+void exitLiveInputState();
+void receivedLiveInput(uint8_t * payload);
 void clearFrameAction();
-void lineAnimationAction();
+void AnimationAction(const char * animationLabel);
 #endif

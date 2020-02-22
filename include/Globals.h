@@ -9,10 +9,12 @@
 // Globals
 extern const char* ssid;
 extern const char* password;
+
 extern size_t height;
 extern size_t width;
 extern uint8_t stateMachine[5];
 extern uint8_t filename[100];
+extern uint8_t animation[4];
 extern uint8_t appDataBuffer[MAX_BUFFER_SIZE];
 extern TaskHandle_t Web_Server_Task;
 extern TaskHandle_t Led_Driver_Task;
@@ -21,7 +23,9 @@ extern Esp32CtrlLed matrix;
 extern bool appInput;
 extern bool AnimationRunning;
 extern bool listenLiveInput;
+extern bool receivedLiveData;
 extern bool defaultState;
+extern bool bufferLock;
 extern int testValue;
 
 

@@ -4,6 +4,7 @@
 #include "Esp32CtrlLed.h"
 #include "Globals.h"
 
-void HorizontalLine(Esp32CtrlLed &matrix, uint8_t rowindex, uint8_t previndex, uint8_t width, uint8_t height, uint32_t color);
+void HorizontalLine(uint8_t rowindex, uint8_t previndex, uint8_t width, uint8_t height, uint32_t color);
+void VerticalLine(uint8_t rowindex, uint8_t prevRowIndex, uint8_t width, uint8_t height, uint32_t color);
 void SinglePixel(uint8_t rowindex, uint8_t previndex, uint32_t color);
 #endif

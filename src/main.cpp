@@ -22,9 +22,11 @@ size_t width = 1;
 // String data for the Led Driver
 uint8_t stateMachine[5];
 uint8_t filename[100];
+uint8_t animation[4];
 
-// Globals for the  Web Socket Task (CPU 1)
+// data buffer
 uint8_t appDataBuffer[MAX_BUFFER_SIZE];
+// Globals for the  Web Socket Task (CPU 1)
 TaskHandle_t Web_Server_Task;
 TaskHandle_t Led_Driver_Task;
 WebSocketsServer server = WebSocketsServer(80);
@@ -37,6 +39,8 @@ bool appInput = false;
 bool AnimationRunning = false;
 bool listenLiveInput = false;
 bool defaultState = false;
+bool receivedLiveData = false;
+bool bufferLock = false;
 
 
 void WebServerTask(void *parameter){
@@ -64,7 +68,7 @@ void setup(){
   clearBuffer(filename, 100);
 
   // Led Driver Setup
-  matrix.updateLength(192);
+  matrix.updateLength(64);
   matrix.setPin(GPIO_NUM_26);
   matrix.ESP32_RMT_Init();
 
@@ -72,27 +76,27 @@ void setup(){
   /* Code below to be used for access point.
   * Connect to Wi-Fi network with SSID and password
   */
-  // Serial.print("Setting AP (Access Point)…");
+  Serial.print("Setting AP (Access Point)…");
 
   /* Remove the password parameter, if you want the AP (Access Point) to be open */
-  // WiFi.softAP(ssid, password);
-  // IPAddress IP = WiFi.softAPIP();
-  // Serial.print("AP IP address: ");
-  // Serial.println(IP);
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
 
-  /* The following section is used for connecting to network wifi*/
-  // Using wifi connection for phone app testing
+  // /* The following section is used for connecting to network wifi*/
+  // // Using wifi connection for phone app testing
   // WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
 
-  WiFi.begin("UHWireless","");
+  // // WiFi.begin("UHWireless","");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi..");
-  }
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(1000);
+  //   Serial.println("Connecting to WiFi..");
+  // }
 
-  // // HTTP access points
-  Serial.println(WiFi.localIP());
+  // // // HTTP access points
+  // Serial.println(WiFi.localIP());
 
    // Start WebSocket server and assign callback
   server.begin();
