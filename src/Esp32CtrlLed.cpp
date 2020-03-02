@@ -94,7 +94,7 @@ void Esp32CtrlLed::setPixelRGB(uint32_t index, uint8_t r, uint8_t g, uint8_t b) 
   }
 }
 
-/* Set a pixel from a 32 bit color value  GRB       , input in RGB               */
+/* Set a pixel from a 32 bit color value  GRB, input in RGB               */
 void Esp32CtrlLed::setPixelRGB(uint32_t index, uint32_t colorData) {
   if( index < NUM_LEDS ){
     uint32_t bits_to_send = (((colorData >> 8) & 0xFF) << 16) + (((colorData >> 16) & 0xFF)<< 8) + (colorData & 0xFF);

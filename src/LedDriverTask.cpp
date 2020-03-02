@@ -9,11 +9,19 @@
 bool horizontalLine = false;
 bool verticalLine = false;
 bool pixel = false;
+
 void LedDriverTask(void *parameter){
 
   matrix.resetLeds();
   matrix.write_leds();
   Serial.printf("Led Driver State Machine\n");
+
+  // Set Initial state to Default Loop
+  appInput = true;
+  defaultState = true;
+  strncpy((char *)stateMachine, "DEFT", 4);
+
+  // counters for the animation loop
   int newindex = 0;
   int prev = newindex;
 
@@ -22,17 +30,16 @@ void LedDriverTask(void *parameter){
       // Default state, will be used for displaying chosen frames
       if(!strcmp("DEFT", (const char*)stateMachine)){
         clearBuffer(stateMachine, 4);
-
+        Serial.printf("Default State\n");
         while(defaultState){
-          delay(100);
+          delay(10);
         }
+
       // Animation state: Display the animation chosen by the user.
       // The PIXL animation may be used for verifying LED Matrix connections.
       } else if(!strcmp("ANIM", (const char*)stateMachine)){
         Serial.printf("Start Animation\n");
         clearBuffer(stateMachine, 4);
-        // Serial.printf("%s\n", (const char *) animation);
-        // Serial.printf("%d\n", AnimationRunning);
 
         if(!strcmp("HLNE", (const char*) animation)){
           horizontalLine = true;
@@ -47,14 +54,14 @@ void LedDriverTask(void *parameter){
           horizontalLine = false;
           verticalLine = true;
         }
-        while(AnimationRunning){
+        while(animationState){
           // Animate a Horizontal horizontalLine moving translating from the bottom of the display to the top.
           if(horizontalLine){
             if(newindex >= height){
               newindex = 0;
               prev= height - 1;
             }
-            HorizontalLine(newindex, prev, width, height, 0x00010100);
+            HorizontalLine(newindex, prev, width, height, 0x000F0F00);
             matrix.write_leds();
 
             prev = newindex;
@@ -78,7 +85,7 @@ void LedDriverTask(void *parameter){
               newindex = 0;
               prev= width - 1;
             }
-            VerticalLine(newindex, prev, width, height, 0x00010100);
+            VerticalLine(newindex, prev, width, height, 0x000F0F00);
             matrix.write_leds();
 
             prev = newindex;
@@ -92,13 +99,15 @@ void LedDriverTask(void *parameter){
       } else if(!strcmp("OPEN", (const char*)stateMachine)){
         clearBuffer(stateMachine, 4);
 
-        delay(50);
+        // delay(50);
         loadDataFromStorage(SD, matrix, (const char *)filename, height, width);
         matrix.write_leds();
 
         clearBuffer(filename,strlen((const char *)filename));
-        strncpy((char *) stateMachine, "LIVE", 4);
-        listenLiveInput = true;
+        if(liveInputState) {
+          strncpy((char *) stateMachine, "LIVE", 4);
+        }
+        // liveInputState = true;
 
       // Clear state: The animation and open states exit through here
       } else if(!strcmp("CLCR",(const char *) stateMachine)){
@@ -106,32 +115,33 @@ void LedDriverTask(void *parameter){
 
         matrix.resetLeds();
         matrix.write_leds();
-        Serial.printf("Clearing display\n");
-        appInput = false;
+        if(defaultState){
+          strncpy((char *)stateMachine, "DEFT", 4);
+        }
+        appInput = true;
+
         // Listen for live input and then display it in the frame
       } else if(!strcmp("LIVE", (const char *)stateMachine)){
         clearBuffer(stateMachine, 4);
-        Serial.printf("listening for live input\n");
-        while(listenLiveInput){
+        Serial.printf("Live input\n");
+        while(liveInputState){
 
           if(receivedLiveData){
-            bufferLock = true;
-            processLiveData();
             matrix.write_leds();
             receivedLiveData = false;
-            bufferLock = false;
           }
           delay(1);
         }
+
       } else if (!strcmp("CLRI", (const char *)stateMachine)){
         strncpy((char *)stateMachine, "LIVE",4);
         matrix.resetLeds();
         matrix.write_leds();
-        listenLiveInput=true;
+        liveInputState=true;
         appInput = true;
       }
     }
-    delay(100);
+    delay(1);
   }
 }
 
@@ -155,5 +165,4 @@ void processLiveData() {
       matrix.setPixelRGB(index, color);
     }
   }
-
 }

@@ -20,8 +20,11 @@ std::string extractFilename(uint8_t * payload);
 void readfile(uint8_t &client,uint8_t * filename);
 uint16_t readfileSize(File &fileptr);
 void writefile(uint8_t client, const char * filename, uint8_t * payload, const char* suffix);
+void writefile(const char *filename, const char *payload);
 void renamefile(const char *path1, const char * path2);
 void deletefile(const char *path);
 void appendfile(uint8_t client, const char * filename, uint8_t * payload, const char * suffix);
-
+void writeDefaultFrames(const char * defaultData);
+void StartUpDefaultFrame();
+void updateFrameData(size_t arraySize);
 #endif

@@ -1,105 +1,134 @@
 #include "WebServerTask.h"
+#include "LedDriverTask.h"
+#include "Filesystem.h"
 // Called when receiving any WebSocket message
 void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  if(num == 0) {
+    clearBuffer(appDataBuffer, MAX_BUFFER_SIZE);
+    // Figure out the type of WebSocket event
+    switch(type) {
 
-  clearBuffer(appDataBuffer, MAX_BUFFER_SIZE);
-  // Figure out the type of WebSocket event
-  switch(type) {
+      // Client has disconnected
+      case WStype_DISCONNECTED:
+        Serial.printf("[%u] Disconnected!\n", num);
+        clearBuffer(stateMachine, 4);
+        strncpy((char *)stateMachine, "DEFT", 4);
 
-    // Client has disconnected
-    case WStype_DISCONNECTED:
-      Serial.printf("[%u] Disconnected!\n", num);
-      clearBuffer(stateMachine, 4);
-      // strncpy((char *)stateMachine, "DEFT", 4);
-      // defaultState = true;
-      if(AnimationRunning){
-        AnimationRunning = false;
-      }
-      if(defaultState){
-        defaultState = false;
-      }
-      appInput = false;
-      break;
+        defaultState = true;
+        if(animationState || liveInputState){
+          animationState = false;
+          liveInputState = false;
+        }
 
-    // New client has connected
-    case WStype_CONNECTED:
-      {
-        IPAddress ip = server.remoteIP(num);
-        Serial.printf("[%u] Connection from ", num);
-        Serial.println(ip.toString());
-      }
-      break;
+        appInput = true;
+        break;
 
-    // Echo text message back to client
-    // Research using a dictionary like structure to minimize the else if chain.
-    case WStype_TEXT:
-      // Extract the first four characters of message
-      strncpy((char *)appDataBuffer,(const char *)payload, 4);
+      // New client has connected
+      case WStype_CONNECTED:
+        {
+          server.sendTXT(num, "ACCEPT");
+          IPAddress ip = server.remoteIP(num);
+          Serial.printf("[%u] Connection from ", num);
+          Serial.println(ip.toString());
+        }
+        break;
 
-      if(!strcmp("dirs",(const char*)appDataBuffer)){
+      // Echo text message back to client
+      // Research using a dictionary like structure to minimize the else if chain.
+      case WStype_TEXT:
+        // Extract the first four characters of message
+        strncpy((char *)appDataBuffer,(const char *)payload, 4);
 
-        server.sendTXT(num,listRootDir());
+        if(!strcmp("dirs",(const char*)appDataBuffer)){
 
-      // Opens file: 1. Sends data to app.  2. Display data to LED display
-      } else if (!strcmp("read", (const char *)appDataBuffer)){
+          server.sendTXT(num,listRootDir());
 
-        readFileAction(num, payload);
+        // Opens file: 1. Sends data to app.  2. Display data to LED display
+        } else if (!strcmp("read", (const char *)appDataBuffer)){
 
-      } else if (!strcmp("size",(const char *)appDataBuffer)){
+          readFileAction(num, payload);
 
-        updateDisplaySize((const char *)(payload+4), height, width);
-        matrix.updateLength(height*width);
-        // Serial.printf("New Display Size\n Height: %d, Width: %d\n", height, width);
-      }
-      else if(!strcmp("save", (const char*)appDataBuffer)){
+        } else if (!strcmp("DFRD",(const char *)appDataBuffer)){
+          defaultReadAction(num, payload);
 
-        writeFileAction(num, length, payload);
+        } else if (!strcmp("size",(const char *)appDataBuffer)){
 
-      } else if(!strcmp("apnd", (const char*)appDataBuffer)){
+          updateDisplaySize((const char *)(payload+4), height, width);
+          matrix.updateLength(height*width);
 
-        appendFileAction(num, length, payload);
+        } else if(!strcmp("LIVE",(const char*)appDataBuffer)){
+          // Enter liveInput State
+          liveInputAction(payload);
 
-      } else if(!strcmp("EXWT",(const char*)appDataBuffer)){
+        } else if(!strcmp("EXLI", (const char*)appDataBuffer)){
+          // Exit liveInput and enter DefaultState
+          exitLiveInputState();
 
-        server.sendTXT(num, "SUXS");
+        } else if(!strcmp("ANIM", (const char *)appDataBuffer)){
+          // Enter Animation State
+          AnimationAction((const char *)(payload+4));
 
-      } else if(!strcmp("dels", (const char*)appDataBuffer)){
+        }else if(!strcmp("CLRI", (const char*)appDataBuffer)){
 
-        deletefile((const char*)(payload+4));
+          clearLiveInput();
 
-      } else if(!strcmp("LIVE",(const char*)appDataBuffer)){
+        } else if(!strcmp("save", (const char*)appDataBuffer)){
 
-        liveInputState(payload);
+          writeFileAction(num, length, payload);
 
-      } else if(!strcmp("CLRI", (const char*)appDataBuffer)){
-        clearLiveInput();
-      }else if(!strcmp("EXLI", (const char*)appDataBuffer)){
-        exitLiveInputState();
-      }else if(!strcmp("INPT", (const char*)appDataBuffer)){
-        receivedLiveInput(payload);
-      } else if(!strcmp("STLI", (const char *)appDataBuffer)){
+        } else if(!strcmp("apnd", (const char*)appDataBuffer)){
 
-        clearFrameAction();
+          appendFileAction(num, length, payload);
 
-      } else if(!strcmp("ANIM", (const char *)appDataBuffer)){
+        } else if(!strcmp("SDEF", (const char*)appDataBuffer)){
 
-        AnimationAction((const char *)(payload+4));
+          writefile("/Production/DefaultDisplay.txt", (const char *)(payload+4));
+          strcpy((char *)appDataBuffer, (const char *)(payload+4));
+          writeDefaultFrames((const char *)appDataBuffer);
 
-      } else {
-          server.sendTXT(num, payload);
-      }
+        } else if (!strcmp("GDEF", (const char*)appDataBuffer)) {
 
-      break;
+          getDefaultFrames(num);
 
-    // For everything else: do nothing
-    case WStype_BIN:
-    case WStype_ERROR:
-    case WStype_FRAGMENT_TEXT_START:
-    case WStype_FRAGMENT_BIN_START:
-    case WStype_FRAGMENT:
-    case WStype_FRAGMENT_FIN:
-    default:
-      break;
+        } else if(!strcmp("EXWT",(const char*)appDataBuffer)){
+
+          server.sendTXT(num, "SUXS");
+
+        } else if(!strcmp("dels", (const char*)appDataBuffer)){
+
+          deletefile((const char*)(payload+4));
+
+        } else if(!strcmp("INPT", (const char*)appDataBuffer)){
+
+          receivedLiveInput(payload);
+
+        } else if(!strcmp("STLI", (const char *)appDataBuffer)){
+
+          clearFrameAction();
+
+        }else if(!strcmp("TYPE",(const char *)appDataBuffer)) {
+
+          updateMatrixTypeData(payload+4);
+
+        } else {
+
+            server.sendTXT(num, payload);
+        }
+
+        break;
+
+      // For everything else: do nothing
+      case WStype_BIN:
+      case WStype_ERROR:
+      case WStype_FRAGMENT_TEXT_START:
+      case WStype_FRAGMENT_BIN_START:
+      case WStype_FRAGMENT:
+      case WStype_FRAGMENT_FIN:
+      default:
+        break;
+    }
+  } else {
+    server.sendTXT(num, "REJECT");
   }
 }
 
@@ -118,13 +147,14 @@ void updateDisplaySize(const char * data, size_t &height, size_t &width){
     index++;
   }
   width = strtol(size.c_str(), NULL, 10);
+  updateBufferLength(width, height);
 }
 
-void readFileAction( uint8_t num, uint8_t * payload  ){
-  listenLiveInput = false;
-  if (defaultState || AnimationRunning){
+void readFileAction( uint8_t num, uint8_t * payload){
+  liveInputState = false;
+  if (defaultState || animationState){
     defaultState = false;
-    AnimationRunning = false;
+    animationState = false;
   }
   clearBuffer(appDataBuffer,4);
   readfile(num,  (payload+4));
@@ -132,9 +162,25 @@ void readFileAction( uint8_t num, uint8_t * payload  ){
   strcpy((char *)filename, (const char *)(payload+4));
   strncpy((char *)stateMachine, "OPEN", 4);
 
+  liveInputState = true;
   appInput = true;
 }
+void defaultReadAction(uint8_t num, uint8_t * payload){
 
+  // if (defaultState || animationState){
+  //   defaultState = false;
+  //   animationState = false;
+  //   liveInputState = false;
+  // }
+  clearBuffer(appDataBuffer,4);
+  readfile(num,  (payload+4));
+
+  strcpy((char *)filename, (const char *)(payload+4));
+  // strncpy((char *)stateMachine, "DEFT", 4);
+
+  // defaultState = true;
+  // appInput = true;
+}
 void writeFileAction(uint8_t num, size_t length, uint8_t * payload ){
   strncpy((char *) appDataBuffer, (const char *)(payload + length - 4), 4);
   if(!strcmp("EX1T", (const char *)appDataBuffer)){
@@ -157,59 +203,101 @@ void appendFileAction(uint8_t num, size_t length, uint8_t * payload ){
   appendfile(num, filename.c_str(), (payload+4+filename.length()), suffix.c_str());
 }
 
-void liveInputState( uint8_t * payload){
-  if(defaultState || AnimationRunning){
+void liveInputAction( uint8_t * payload){
+  if(defaultState || animationState){
     defaultState = false;
-    AnimationRunning = false;
+    animationState = false;
   }
   strncpy((char *) stateMachine, "LIVE", 4);
-  listenLiveInput = true;
+  liveInputState = true;
   appInput = true;
 
 }
 void receivedLiveInput(uint8_t * payload){
   clearBuffer(appDataBuffer,strlen((const char *) payload));
   strncpy((char *)appDataBuffer, (const char*)(payload+4), strlen((const char *)payload+4));
-
+  processLiveData();
   receivedLiveData = true;
-  while(bufferLock){
-    delay(5);
-  }
 }
 void clearFrameAction(){
   // Clear the display
   appInput = true;
-  if (defaultState || AnimationRunning){
-    defaultState = false;
-    AnimationRunning = false;
+  if (liveInputState || animationState){
+    defaultState = true;
+    liveInputState = false;
+    animationState = false;
   }
   strncpy((char *) stateMachine, "CLCR", 4);
 
 }
 void exitLiveInputState() {
-  if(listenLiveInput){
-    listenLiveInput = false;
-    receivedLiveData =false;
-    defaultState = false;
-    AnimationRunning = false;
+  if(liveInputState){
+    liveInputState = false;
+    receivedLiveData = false;
+    animationState = false;
   }
+  defaultState = true;
   strncpy((char *)stateMachine, "CLCR", 4);
   appInput = true;
 }
 void clearLiveInput() {
+
   strncpy((char *)stateMachine, "CLRI",4);
-  listenLiveInput = false;
+  liveInputState = false;
   appInput = true;
+
 }
 void AnimationAction(const char * animationLabel){
-  AnimationRunning = true;
-  if (defaultState || listenLiveInput){
+  animationState = true;
+  if (defaultState || liveInputState){
     defaultState = false;
-    listenLiveInput = false;
+    liveInputState = false;
   }
 
   strncpy((char*)animation, animationLabel, 4);
   strncpy((char *)stateMachine, "ANIM", 4);
 
   appInput = true;
+}
+void updateMatrixTypeData( uint8_t * mType) {
+  matrixType.assign((const char *)mType);
+  if(!strcmp("CJMCU-64",matrixType.c_str())){
+    isCJMCU = true;
+  } else {
+    isCJMCU = false;
+  }
+}
+
+
+void getDefaultFrames(uint8_t client){
+  clearBuffer(appDataBuffer,4);
+  for(int i = 0; i < FLENGTH; i++){
+    strcat((char *)appDataBuffer, FileNames[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, Effects[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, DisplayTime[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, Delays[i].c_str());
+    strcat((char *)appDataBuffer, "\n");
+  }
+  server.sendTXT(client,(const char *)appDataBuffer);
+  server.sendTXT(client, "EX1T");
+}
+
+void updateBufferLength(int newWidth, int newHeight){
+  delete[] LEDBuffer1;
+  delete[] LEDBuffer2;
+
+  try {
+    LEDBuffer1 = new uint8_t[newWidth*newHeight];
+    LEDBuffer2 = new uint8_t[newWidth*newHeight];
+  }
+    catch(std::bad_alloc){
+      LEDBuffer1 = NULL;
+      LEDBuffer2 = NULL;
+      Serial.printf("Bad Allocation on length update for LED Buffers.\n");
+    return;
+  }
+
 }

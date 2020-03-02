@@ -43,40 +43,43 @@ std::string to_string(unsigned int number){
     return temp;
 }
 void readfile(uint8_t &client, uint8_t * filename){
-    File file = SD.open((const char *)filename);
-    char temp;
+    if(strlen((const char *)filename) > 3) {
+        File file = SD.open((const char *)filename);
+        char temp;
 
-    if(!file){
-        Serial.printf("Failed to open file for reading\n");
-        server.sendTXT(client, "File could not be opened.");
-        return;
-    }
-    // Retrieve the size of the file
-    unsigned int data_Available = file.available();
-
-    // Move file point to the second line.
-    do {
-        temp = file.read();
-        if( temp == '\n' || temp == '\r'){
-            break;
+        if(!file){
+            Serial.printf("Failed to open file for reading: %s\n",(const char *)filename);
+            server.sendTXT(client, "File could not be opened.");
+            server.sendTXT(client, "EX1T");
+            return;
         }
-    } while (file.available());
+        // Retrieve the size of the file
+        unsigned int data_Available = file.available();
 
-    data_Available = file.available();
-    // Read the rest of the data and send it to the phone
-    while(data_Available){
-        clearBuffer(appDataBuffer, MAX_BUFFER_SIZE-1);
-        if( data_Available < MAX_BUFFER_SIZE-1){
-            file.read(appDataBuffer, (size_t)data_Available);
-        } else {
-            file.read(appDataBuffer, MAX_BUFFER_SIZE-1);
-        }
-        server.sendTXT(client, (const char*)appDataBuffer);
+        // Move file point to the second line.
+        do {
+            temp = file.read();
+            if( temp == '\n' || temp == '\r'){
+                break;
+            }
+        } while (file.available());
+
         data_Available = file.available();
+        // Read the rest of the data and send it to the phone
+        while(data_Available){
+            clearBuffer(appDataBuffer, MAX_BUFFER_SIZE-1);
+            if( data_Available < MAX_BUFFER_SIZE-1){
+                file.read(appDataBuffer, (size_t)data_Available);
+            } else {
+                file.read(appDataBuffer, MAX_BUFFER_SIZE-1);
+            }
+            server.sendTXT(client, (const char*)appDataBuffer);
+            data_Available = file.available();
+        }
+        /* Send "End" of data  */
+        server.sendTXT(client, "EX1T");
+        file.close();
     }
-    /* Send "End" of data  */
-    server.sendTXT(client, "EX1T");
-    file.close();
 }
 uint16_t readfileSize(File &file){
     uint16_t i =0;
@@ -122,7 +125,22 @@ void writefile(uint8_t client, const char *filename, uint8_t *payload, const cha
     }
     file.close();
 }
+void writefile(const char *filename, const char *payload){
 
+    File file = SD.open(filename, FILE_WRITE);
+
+    if(!file){
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if(!file.print((const char *)payload)){
+        file.close();
+        Serial.printf("could not write to file\n");
+        deletefile(filename);
+        return;
+    }
+    file.close();
+}
 /* Append to file to finish writing data. */
 void appendfile(uint8_t client, const char *filename, uint8_t *payload, const char *suffix){
     File file = SD.open(filename, FILE_APPEND);
@@ -159,4 +177,85 @@ void deletefile(const char *path){
     } else {
         Serial.println("Delete failed");
     }
+}
+void writeDefaultFrames(const char * defaultData){
+  char *ptr;
+  ptr = strtok((char *)defaultData, "\n");
+//   size_t fileCount = 0, effectCount = 0, delayCount = 0, displayTimeCount = 0, count=0;
+  size_t arraySize = strtol((const char *)ptr,NULL, 10);
+  updateFrameData(arraySize);
+
+//   while((ptr = strtok(NULL, "\n")) != NULL){
+//     if(strlen((const char *)ptr) > 0){
+//         if(count%4 == 0){
+//             FileNames[fileCount].assign((const char *)ptr);
+//             fileCount++;
+//         } else if (count%4 == 1 ){
+//             Effects[effectCount].assign((const char *)ptr);
+//             effectCount++;
+//         } else if (count%4 == 2 ){
+//             DisplayTime[displayTimeCount].assign((const char *)ptr);
+//             displayTimeCount++;
+//         } else {
+//             Delays[delayCount].assign((const char *)ptr);
+//             delayCount++;
+//         }
+//         count++;
+//     }
+//   }
+//   for(int i = 0; i < arraySize; i++) {
+//       Serial.printf("Filename: %s, Effect: %s, display: %s, Delay: %s\n", FileNames[i].c_str(),Effects[i].c_str(), DisplayTime[i].c_str(), Delays[i].c_str());
+//   }
+  for(int i = 0; i < arraySize; i++){
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL){
+      FileNames[i].assign((const char *)ptr);
+    } else return;
+
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL) {
+      Effects[i].assign((const char *)ptr);
+    } else return;
+
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL){
+      DisplayTime[i].assign((const char *)ptr);
+    } else return;
+
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL) {
+      Delays[i].assign((const char *)ptr);
+    } else return;
+  }
+
+}
+void StartUpDefaultFrame() {
+    File file = SD.open("/Production/DefaultDisplay.txt");
+    if(!file){
+        Serial.printf("Failed to open file for reading: default\n");
+        return;
+    }
+    file.read(appDataBuffer, (size_t)file.available());
+    writeDefaultFrames((const char *)appDataBuffer);
+    file.close();
+}
+void updateFrameData(size_t arraySize){
+  delete[] Effects;
+  delete[] DisplayTime;
+  delete[] FileNames;
+  delete[] Delays;
+
+  try {
+    Effects = new std::string[arraySize];
+    FileNames = new std::string[arraySize];
+    DisplayTime = new std::string[arraySize];
+    Delays = new std::string[arraySize];
+  }
+  catch(std::bad_alloc){
+    Serial.printf("Bad Allocation on frame data update.\n");
+    FLENGTH = 0;
+    return;
+  }
+
+  FLENGTH = arraySize;
 }

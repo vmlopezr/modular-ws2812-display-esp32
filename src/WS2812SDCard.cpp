@@ -38,7 +38,6 @@ void loadDataFromStorage(fs::FS &fs, Esp32CtrlLed &Leds, const char *filename, s
         char_count++;
       }
   }
-  Serial.printf("Finished color data\n");
   file.close();
 }
 void loadDataFromWireless(Esp32CtrlLed &Leds){}
