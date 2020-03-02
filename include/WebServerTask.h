@@ -6,7 +6,7 @@
 
 
 void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
-void updateDisplaySize(const char * data, size_t &height, size_t &width);
+bool updateDisplaySize(char * data, size_t &oldHeight, size_t &oldWidth);
 void readFileAction(uint8_t num, uint8_t * payload );
 void defaultReadAction(uint8_t num,uint8_t * payload);
 void writeFileAction(uint8_t num, size_t length, uint8_t * payload );

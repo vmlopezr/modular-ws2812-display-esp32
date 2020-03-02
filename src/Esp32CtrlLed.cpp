@@ -34,7 +34,6 @@ void Esp32CtrlLed::setBrightness(uint8_t brightness){
 /* Update the size of LedData array                     */
 void Esp32CtrlLed::updateLength(size_t Led_Num) {
   delete[] LedData;
-
   uint32_t newSize = Led_Num * BITS_PER_LED_CMD;
 
   // Attempt to allocate new data array

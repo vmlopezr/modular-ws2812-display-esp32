@@ -181,31 +181,15 @@ void deletefile(const char *path){
 void writeDefaultFrames(const char * defaultData){
   char *ptr;
   ptr = strtok((char *)defaultData, "\n");
-//   size_t fileCount = 0, effectCount = 0, delayCount = 0, displayTimeCount = 0, count=0;
   size_t arraySize = strtol((const char *)ptr,NULL, 10);
+  // Need to read the size;
+  ptr = strtok(NULL, "\n");
+  height = strtol((const char *)ptr, NULL, 10);
+  ptr = strtok(NULL, "\n");
+  width = strtol((const char *)ptr, NULL, 10);
+
   updateFrameData(arraySize);
 
-//   while((ptr = strtok(NULL, "\n")) != NULL){
-//     if(strlen((const char *)ptr) > 0){
-//         if(count%4 == 0){
-//             FileNames[fileCount].assign((const char *)ptr);
-//             fileCount++;
-//         } else if (count%4 == 1 ){
-//             Effects[effectCount].assign((const char *)ptr);
-//             effectCount++;
-//         } else if (count%4 == 2 ){
-//             DisplayTime[displayTimeCount].assign((const char *)ptr);
-//             displayTimeCount++;
-//         } else {
-//             Delays[delayCount].assign((const char *)ptr);
-//             delayCount++;
-//         }
-//         count++;
-//     }
-//   }
-//   for(int i = 0; i < arraySize; i++) {
-//       Serial.printf("Filename: %s, Effect: %s, display: %s, Delay: %s\n", FileNames[i].c_str(),Effects[i].c_str(), DisplayTime[i].c_str(), Delays[i].c_str());
-//   }
   for(int i = 0; i < arraySize; i++){
     ptr = strtok(NULL,"\n");
     if(ptr != NULL){

@@ -24,11 +24,12 @@ void LedDriverTask(void *parameter){
   // counters for the animation loop
   int newindex = 0;
   int prev = newindex;
-
+ // Possible use of the hardware timers to keep track of the displayTime
   while(1) {
     if(appInput){
       // Default state, will be used for displaying chosen frames
       if(!strcmp("DEFT", (const char*)stateMachine)){
+        appInput = false;
         clearBuffer(stateMachine, 4);
         Serial.printf("Default State\n");
         while(defaultState){
@@ -38,8 +39,10 @@ void LedDriverTask(void *parameter){
       // Animation state: Display the animation chosen by the user.
       // The PIXL animation may be used for verifying LED Matrix connections.
       } else if(!strcmp("ANIM", (const char*)stateMachine)){
-        Serial.printf("Start Animation\n");
         clearBuffer(stateMachine, 4);
+        appInput = false;
+        Serial.printf("Start Animation %s\n", (const char *)animation);
+
 
         if(!strcmp("HLNE", (const char*) animation)){
           horizontalLine = true;
@@ -68,7 +71,7 @@ void LedDriverTask(void *parameter){
             newindex++;
           }
           // Animate a pixel moving on display. It follows the index count of the pcb connections.
-          if(pixel){
+          else if(pixel){
             if(newindex >= matrix.NUM_LEDS){
               newindex = 0;
               prev=matrix.NUM_LEDS - 1;
@@ -76,11 +79,12 @@ void LedDriverTask(void *parameter){
 
             SinglePixel(newindex, prev, 0x000F0F00);
             matrix.write_leds();
-
+            Serial.printf("pix\n");
             prev = newindex;
             newindex++;
+
           }
-          if(verticalLine){
+          else if(verticalLine){
             if(newindex >= width){
               newindex = 0;
               prev= width - 1;
@@ -93,21 +97,25 @@ void LedDriverTask(void *parameter){
           }
           delay(50);
         }
+        newindex = 0;
+        prev = 0;
 
       // The open state will display the frame. Then change the statemachine to
       // a "listen for live input" state
       } else if(!strcmp("OPEN", (const char*)stateMachine)){
+        fileLock = true;
         clearBuffer(stateMachine, 4);
+        unsigned long start = micros();
+        loadDataFromStorage(matrix, (const char *)filename);
+        fileLock = false;
 
-        // delay(50);
-        loadDataFromStorage(SD, matrix, (const char *)filename, height, width);
         matrix.write_leds();
-
+        Serial.printf("read time: %lu\n", micros() - start);
         clearBuffer(filename,strlen((const char *)filename));
         if(liveInputState) {
           strncpy((char *) stateMachine, "LIVE", 4);
         }
-        // liveInputState = true;
+
 
       // Clear state: The animation and open states exit through here
       } else if(!strcmp("CLCR",(const char *) stateMachine)){
@@ -122,6 +130,7 @@ void LedDriverTask(void *parameter){
 
         // Listen for live input and then display it in the frame
       } else if(!strcmp("LIVE", (const char *)stateMachine)){
+        appInput = false;
         clearBuffer(stateMachine, 4);
         Serial.printf("Live input\n");
         while(liveInputState){

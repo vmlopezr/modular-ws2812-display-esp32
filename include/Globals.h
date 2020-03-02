@@ -22,8 +22,8 @@ extern std::string *DisplayTime;
 extern std::string *FileNames;
 extern std::string *Effects;
 extern uint8_t appDataBuffer[MAX_BUFFER_SIZE];
-extern uint8_t *LEDBuffer1;
-extern uint8_t *LEDBuffer2;
+extern uint32_t *LEDBuffer1;
+extern uint32_t *LEDBuffer2;
 extern TaskHandle_t Web_Server_Task;
 extern TaskHandle_t Led_Driver_Task;
 extern WebSocketsServer server;
@@ -34,7 +34,7 @@ extern bool animationState;
 extern bool liveInputState;
 extern bool receivedLiveData;
 extern bool defaultState;
-extern bool bufferLock;
+extern bool fileLock;
 extern int testValue;
 
 

@@ -14,12 +14,12 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
         clearBuffer(stateMachine, 4);
         strncpy((char *)stateMachine, "DEFT", 4);
 
-        defaultState = true;
+
         if(animationState || liveInputState){
           animationState = false;
           liveInputState = false;
         }
-
+        defaultState = true;
         appInput = true;
         break;
 
@@ -52,9 +52,13 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
           defaultReadAction(num, payload);
 
         } else if (!strcmp("size",(const char *)appDataBuffer)){
-
-          updateDisplaySize((const char *)(payload+4), height, width);
-          matrix.updateLength(height*width);
+          bool sizeChanged = updateDisplaySize((char *)(payload+4), height, width);
+          if(sizeChanged){
+            matrix.updateLength(height*width);
+            updateBufferLength(width, height);
+            matrix.resetLeds();
+            matrix.write_leds();
+          }
 
         } else if(!strcmp("LIVE",(const char*)appDataBuffer)){
           // Enter liveInput State
@@ -132,54 +136,50 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
   }
 }
 
-void updateDisplaySize(const char * data, size_t &height, size_t &width){
-  uint16_t index = 0;
-  uint32_t length = strlen(data);
-  std::string size;
+bool updateDisplaySize(char * data, size_t &oldHeight, size_t &oldWidth){
+  int temp;
+  char *size;
+  bool sizeChanged = false;
 
-  while(index < length){
-    if(data[index] != ' '){
-      size.push_back(data[index]);
-    } else {
-      height = strtol(size.c_str(), NULL, 10);
-      size.clear();
-    }
-    index++;
+  size = strtok((char *) data, " ");
+  temp = strtol((const char*)size, NULL, 10);
+  size = strtok(NULL, " ");
+
+  if(temp != oldHeight){
+    oldHeight = temp;
+    sizeChanged = true;
   }
-  width = strtol(size.c_str(), NULL, 10);
-  updateBufferLength(width, height);
+
+  temp = strtol((const char*)size, NULL, 10);
+
+  if( temp != oldWidth){
+    oldWidth = temp;
+    sizeChanged = true;
+  }
+  return sizeChanged;
 }
 
 void readFileAction( uint8_t num, uint8_t * payload){
-  liveInputState = false;
-  if (defaultState || animationState){
-    defaultState = false;
-    animationState = false;
-  }
-  clearBuffer(appDataBuffer,4);
-  readfile(num,  (payload+4));
-
   strcpy((char *)filename, (const char *)(payload+4));
   strncpy((char *)stateMachine, "OPEN", 4);
+  liveInputState = false;
+
+  while(fileLock){
+    delay(1);
+  }
+
+  clearBuffer(appDataBuffer,4);
+  readfile(num,  (payload+4));
 
   liveInputState = true;
   appInput = true;
 }
 void defaultReadAction(uint8_t num, uint8_t * payload){
 
-  // if (defaultState || animationState){
-  //   defaultState = false;
-  //   animationState = false;
-  //   liveInputState = false;
-  // }
   clearBuffer(appDataBuffer,4);
   readfile(num,  (payload+4));
 
   strcpy((char *)filename, (const char *)(payload+4));
-  // strncpy((char *)stateMachine, "DEFT", 4);
-
-  // defaultState = true;
-  // appInput = true;
 }
 void writeFileAction(uint8_t num, size_t length, uint8_t * payload ){
   strncpy((char *) appDataBuffer, (const char *)(payload + length - 4), 4);
@@ -221,14 +221,14 @@ void receivedLiveInput(uint8_t * payload){
 }
 void clearFrameAction(){
   // Clear the display
-  appInput = true;
+
   if (liveInputState || animationState){
     defaultState = true;
     liveInputState = false;
     animationState = false;
   }
   strncpy((char *) stateMachine, "CLCR", 4);
-
+  appInput = true;
 }
 void exitLiveInputState() {
   if(liveInputState){
@@ -236,8 +236,9 @@ void exitLiveInputState() {
     receivedLiveData = false;
     animationState = false;
   }
-  defaultState = true;
+
   strncpy((char *)stateMachine, "CLCR", 4);
+  defaultState = true;
   appInput = true;
 }
 void clearLiveInput() {
@@ -248,15 +249,16 @@ void clearLiveInput() {
 
 }
 void AnimationAction(const char * animationLabel){
-  animationState = true;
-  if (defaultState || liveInputState){
-    defaultState = false;
-    liveInputState = false;
-  }
+
 
   strncpy((char*)animation, animationLabel, 4);
   strncpy((char *)stateMachine, "ANIM", 4);
 
+  if (defaultState || liveInputState){
+    defaultState = false;
+    liveInputState = false;
+  }
+  animationState = true;
   appInput = true;
 }
 void updateMatrixTypeData( uint8_t * mType) {
@@ -290,8 +292,8 @@ void updateBufferLength(int newWidth, int newHeight){
   delete[] LEDBuffer2;
 
   try {
-    LEDBuffer1 = new uint8_t[newWidth*newHeight];
-    LEDBuffer2 = new uint8_t[newWidth*newHeight];
+    LEDBuffer1 = new uint32_t[newWidth*newHeight];
+    LEDBuffer2 = new uint32_t[newWidth*newHeight];
   }
     catch(std::bad_alloc){
       LEDBuffer1 = NULL;

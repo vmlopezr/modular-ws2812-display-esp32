@@ -4,9 +4,10 @@
 #include "Esp32CtrlLed.h"
 #include "SD.h"
 #include "FS.h"
+#include "Globals.h"
 
-void loadDataFromStorage(fs::FS &fs, Esp32CtrlLed &Leds, const char *filename, size_t height, size_t width);
-void loadDataFromWireless();
+void loadDataFromStorage(Esp32CtrlLed &Leds, const char *filename);
+void loadDataFromWireless(uint8_t *buffer, const char* filename);
 
 
 #endif
