@@ -214,6 +214,15 @@ bool writeDefaultFrames(const char * defaultData){
     if(ptr != NULL){
       DisplayTime[i].assign((const char *)ptr);
     } else return false;
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL){
+      Direction[i].assign((const char *)ptr);
+    } else return false;
+        ptr = strtok(NULL,"\n");
+    if(ptr != NULL){
+      SlideSpeed[i].assign((const char *)ptr);
+    } else return false;
+    Serial.printf("%s %s %s %s\n", Effects[i].c_str(), DisplayTime[i].c_str(), Direction[i].c_str(), SlideSpeed[i].c_str());
   }
   return true;
 }
@@ -226,6 +235,8 @@ void defaultInitialization() {
     Effects= NULL;
     DisplayTime= NULL;
     FileNames= NULL;
+    Direction = NULL;
+    SlideSpeed = NULL;
 }
 void StartUpDefaultFrame() {
     File file = SD.open("/Production/DefaultDisplay.txt");
@@ -247,20 +258,28 @@ void resetFrameData(){
   delete[] Effects;
   delete[] DisplayTime;
   delete[] FileNames;
+  delete[] Direction;
+  delete[] SlideSpeed;
   numSavedFrames = 0;
   Effects =  NULL;
   DisplayTime =  NULL;
   FileNames =  NULL;
+  Direction = NULL;
+  SlideSpeed = NULL;
   Serial.printf("Reset the frame data \n");
 }
 void updateFrameData(size_t arraySize){
   delete[] Effects;
   delete[] DisplayTime;
   delete[] FileNames;
+  delete[] Direction;
+  delete[] SlideSpeed;
   try {
     Effects = new std::string[arraySize];
     FileNames = new std::string[arraySize];
     DisplayTime = new std::string[arraySize];
+    Direction = new std::string[arraySize];
+    SlideSpeed = new std::string[arraySize];
   }
   catch(std::bad_alloc){
     Serial.printf("Bad Allocation on frame data update.\n");
@@ -268,6 +287,8 @@ void updateFrameData(size_t arraySize){
     Effects =  NULL;
     DisplayTime =  NULL;
     FileNames =  NULL;
+    Direction = NULL;
+    SlideSpeed = NULL;
     return;
   }
 

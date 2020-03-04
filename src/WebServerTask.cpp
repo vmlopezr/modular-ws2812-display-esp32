@@ -308,6 +308,10 @@ void getDefaultFrames(uint8_t client){
     strcat((char *)appDataBuffer, Effects[i].c_str());
     strcat((char *)appDataBuffer, ",");
     strcat((char *)appDataBuffer, DisplayTime[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, Direction[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, SlideSpeed[i].c_str());
     strcat((char *)appDataBuffer, "\n");
   }
   server.sendTXT(client,(const char *)appDataBuffer);

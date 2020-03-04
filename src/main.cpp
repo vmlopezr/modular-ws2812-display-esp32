@@ -29,8 +29,8 @@ uint8_t animation[5];
 std::string *FileNames = NULL;
 std::string *Effects = NULL;
 std::string *DisplayTime = NULL;
-std::string *Direction;
-std::string *SlideSpeed;
+std::string *Direction = NULL;
+std::string *SlideSpeed = NULL;
 size_t numSavedFrames = 0;
 // data buffer
 uint8_t appDataBuffer[MAX_BUFFER_SIZE];
@@ -123,9 +123,9 @@ void setup(){
 
   // /* The following section is used for connecting to network wifi*/
   // Using wifi connection for phone app testing
-  WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
+  // WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
   // WiFi.begin("DESKTOP-BDJPBC7 9421", "R0)o9854");
-  // WiFi.begin("UHWireless","");
+  WiFi.begin("UHWireless","");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);

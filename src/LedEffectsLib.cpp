@@ -21,7 +21,7 @@ void addColumn(const char * Direction, uint32_t * buffer, uint32_t buffer_column
 
     for(int row = 0; row < height; row++){
       matrix_index = getPixelIndex(0, row);  // The rightmost column in the matrix array is width - 1;
-      buffer_index = getPixelIndex(buffer_column,row);   // The left column of the buffer needs to be added;
+      buffer_index = getPixelIndex(width - 1 - buffer_column,row);   // The left column of the buffer needs to be added;
       matrix.setPixelRGB(matrix_index, buffer[buffer_index]);
     }
     // Shifting towards the left
@@ -100,15 +100,17 @@ void HorizontalLine(uint8_t rowindex, uint8_t prevRowIndex, uint8_t width, uint8
 }
 void addRow(const char * Direction, uint32_t * buffer, uint32_t buffer_row){
   if(!strcmp("Up", Direction)){ // The frame is shifting up
+  // Serial.printf("slide up\n");
     size_t matrix_index = 0;
     size_t buffer_index = 0;
 
     for(int col = 0; col < height; col++){
       matrix_index = getPixelIndex(col, 0);  // The bottom row is matrix_index 0
-      buffer_index = getPixelIndex(col, buffer_row);  // The top row of the buffer needs to be added
+      buffer_index = getPixelIndex(col, height - 1 - buffer_row);  // The top row of the buffer needs to be added
       matrix.setPixelRGB(matrix_index, buffer[buffer_index]);
     }
   } else { // The frame is shifting down
+  // Serial.printf("Slide Down\n");
     size_t matrix_index = 0;
     size_t buffer_index = 0;
     for(int col = 0; col < height; col++){

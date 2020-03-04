@@ -28,7 +28,9 @@ void LedDriverTask(void *parameter){
       if(!strcmp("DEFT", (const char*)stateMachine)){
         clearBuffer(stateMachine, 4);
         appInput = false;
-
+        bool startBlink = false;
+        bool toggleBlink = false;
+        size_t blinkTotalTime = 0;
         size_t frameIndex = 0;
         size_t currentRow = 0;
         size_t currentCol = 0;
@@ -51,74 +53,89 @@ void LedDriverTask(void *parameter){
 
               if(frameIndex >= numSavedFrames){
                 frameIndex = 0;
-                // Serial.printf("Reset frame Index: %d\n", frameIndex);
+
               }
               if(!strcmp("None",Effects[frameIndex].c_str())){
-
-                loadDataToBuffer(LEDBuffer1, FileNames[frameIndex].c_str());
-                loadDataToBuffer(LEDBuffer2, FileNames[frameIndex].c_str());
-                writeBufferToLed(LEDBuffer1);
-                writeBufferToLed(LEDBuffer2);
-                matrix.write_leds();
-                ISR_Delay = getNumericDec(DisplayTime[frameIndex].c_str()) * 1000000;
-
-
+                ISR_Delay = getNumericDec(DisplayTime[frameIndex].c_str()) * 1000;
                 timerAlarmWrite(timer, ISR_Delay , true);
+                loadDataFromStorage(matrix, FileNames[frameIndex].c_str());
+                matrix.write_leds();
+
                 frameIndex++;
               } else if (!strcmp("Horizontal Slide", Effects[frameIndex].c_str())){
-                //if(!strcmp("Right", Direction[frameIndex].c_str())){
-                // } else { // Going left}
-                // Serial.printf("First entry in horizontal: %d\n", currentCol);
-
-                if(currentCol == 0){
-                  // if(numSavedFrames == 1){
-                  //   loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
-                  //   loadDataToBuffer(LEDBuffer1, FileNames[frameIndex].c_str());
-                  // }
-
-                  matrix.write_leds();
-                } else {
-                  shiftMatrixHorizontal("Left");
-                  // addColumn("Right", LEDBuffer1, width-1-currentCol);
-                  addColumn("Left",LEDBuffer1, currentCol);
-                  matrix.write_leds();
+                if(numSavedFrames > 1 ){
+                  if(currentCol == 0 ) {
+                    if(frameIndex == 0 || frameIndex < numSavedFrames - 1){
+                      loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
+                      loadDataToBuffer(LEDBuffer1, FileNames[frameIndex + 1 ].c_str());
+                    } else if(frameIndex == numSavedFrames - 1){
+                      loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
+                      loadDataToBuffer(LEDBuffer1, FileNames[0].c_str());
+                    }
+                  }
                 }
+                shiftMatrixHorizontal(Direction[frameIndex].c_str());
+                addColumn(Direction[frameIndex].c_str(), LEDBuffer1, currentCol);
+                matrix.write_leds();
 
                 currentCol++;
+                ISR_Delay = getNumericDec(SlideSpeed[frameIndex].c_str()) * 1000;
                 if(currentCol >= width ){
                   currentCol = 0;
                   frameIndex++;
                 }
-                // ISR_Delay = SlideSpeed[frameIndex] + factor for milli to micro seconds
                 timerAlarmWrite(timer, ISR_Delay , true);
               } else if(!strcmp("Vertical Slide", Effects[frameIndex].c_str())){
-
-
-
-
-                if(numSavedFrames == 1){
-                  shiftMatrixVertical("Down");
-                  addRow("Down", LEDBuffer1, currentRow);
-
-                  // shiftMatrixVertical(Direction[frameIndex].c_str());
-                  // addRow(Direction[frameIndex].c_str(), LEDBuffer1, currentRow);
-                  // addRow("Up",LEDBuffer1, height - 1 - currentRow);
-                  matrix.write_leds();
-                } else {
-                  // code for more frames
-                  //   loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
-                  //   loadDataToBuffer(LEDBuffer1, FileNames[frameIndex + 1 ].c_str());
+                if(numSavedFrames > 1 ){
+                  if(currentRow == 0 ) {
+                    if(frameIndex == 0 || frameIndex < numSavedFrames - 1){
+                      loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
+                      loadDataToBuffer(LEDBuffer1, FileNames[frameIndex + 1 ].c_str());
+                    } else if(frameIndex == numSavedFrames - 1){
+                      loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
+                      loadDataToBuffer(LEDBuffer1, FileNames[0].c_str());
+                    }
+                  }
                 }
-                // }
 
+                shiftMatrixVertical(Direction[frameIndex].c_str());
+                addRow(Direction[frameIndex].c_str(), LEDBuffer1, currentRow);
+                matrix.write_leds();
                 currentRow++;
+                ISR_Delay = getNumericDec(SlideSpeed[frameIndex].c_str()) * 1000;
                 if(currentRow >= height ){
                   currentRow = 0;
                   frameIndex++;
                 }
-                // ISR_Delay = SlideSpeed[frameIndex] + factor for milli to micro seconds
+
                 timerAlarmWrite(timer, ISR_Delay , true);
-              } else if(!strcmp("Fade", Effects[frameIndex].c_str())){
+              } else if(!strcmp("Blink", Effects[frameIndex].c_str())){
+                if(!startBlink){
+                  blinkTotalTime = 0;
+                  startBlink = true;
+                }
+                ISR_Delay = 10000000;
+                blinkTotalTime+=ISR_Delay;
+                timerAlarmWrite(timer, ISR_Delay , true);
+                if(!toggleBlink){
+                  Serial.printf("turning on\n");
+                  toggleBlink = true;
+                  loadDataFromStorage(matrix, FileNames[frameIndex].c_str());
+                  matrix.write_leds();
+                } else {
+                  Serial.printf("turning off\n");
+                  toggleBlink = false;
+                  matrix.resetLeds();
+                  matrix.write_leds();
+                }
+
+
+                if(blinkTotalTime >= getNumericDec(Effects[frameIndex].c_str())*1000000){
+                  frameIndex++;
+                  startBlink = false;
+                  toggleBlink = false;
+                }
+
 
               }
 
