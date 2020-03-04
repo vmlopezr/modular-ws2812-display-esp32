@@ -13,6 +13,7 @@ void writeFileAction(uint8_t num, size_t length, uint8_t * payload );
 void appendFileAction(uint8_t num, size_t length, uint8_t * payload );
 void liveInputAction( uint8_t * payload);
 void clearLiveInput();
+void sendSize(uint8_t client);
 void exitLiveInputState();
 void receivedLiveInput(uint8_t * payload);
 void clearFrameAction();

@@ -24,7 +24,9 @@ void writefile(const char *filename, const char *payload);
 void renamefile(const char *path1, const char * path2);
 void deletefile(const char *path);
 void appendfile(uint8_t client, const char * filename, uint8_t * payload, const char * suffix);
-void writeDefaultFrames(const char * defaultData);
+bool writeDefaultFrames(const char * defaultData);
 void StartUpDefaultFrame();
 void updateFrameData(size_t arraySize);
+void resetFrameData();
+void resetBuffer(uint32_t * buffer);
 #endif

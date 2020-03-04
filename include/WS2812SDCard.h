@@ -7,7 +7,7 @@
 #include "Globals.h"
 
 void loadDataFromStorage(Esp32CtrlLed &Leds, const char *filename);
-void loadDataFromWireless(uint8_t *buffer, const char* filename);
-
+void loadDataToBuffer(uint32_t *buffer, const char* filename);
+void writeBufferToLed(uint32_t *buffer);
 
 #endif

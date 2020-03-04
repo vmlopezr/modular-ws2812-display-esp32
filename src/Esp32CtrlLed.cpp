@@ -104,6 +104,13 @@ void Esp32CtrlLed::setPixelRGB(uint32_t index, uint32_t colorData) {
     }
   }
 }
+/* Set  the new index with the array value at the old index                */
+/* This function will be helpful for shifting a frame                      */
+void Esp32CtrlLed::copyIndex(uint32_t oldIndex, uint32_t newIndex){
+  for (uint8_t bit = 0; bit < BITS_PER_LED_CMD; bit++) {
+    LedData[newIndex * BITS_PER_LED_CMD + bit] = LedData[oldIndex * BITS_PER_LED_CMD + bit];
+  }
+}
 
 uint8_t Esp32CtrlLed::getNthBit(uint32_t number, uint8_t bit){
   return (number >> bit) & 1;

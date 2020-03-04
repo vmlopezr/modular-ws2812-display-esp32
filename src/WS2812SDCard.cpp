@@ -40,7 +40,7 @@ void loadDataFromStorage(Esp32CtrlLed &Leds, const char *filename){
   }
   file.close();
 }
-void loadDataToBuffer(uint8_t *buffer, const char* filename){
+void loadDataToBuffer(uint32_t *buffer, const char* filename){
   File file = SD.open((const char *)filename);
   if(!file){
     Serial.printf("Failed to  open file for reading\n");
@@ -60,7 +60,6 @@ void loadDataToBuffer(uint8_t *buffer, const char* filename){
   int char_count = 0;
   char data[6];
   size_t index = 0;
-  size_t color;
 
   // Read the rest of the data and send it to the phone
   while(file.available()){
@@ -78,4 +77,13 @@ void loadDataToBuffer(uint8_t *buffer, const char* filename){
       }
   }
   file.close();
+}
+void writeBufferToLed(uint32_t *buffer){
+  for(int i = 0; i < matrix.NUM_LEDS; i++){
+    if(i >= matrix.NUM_LEDS){
+      Serial.printf("equal to max size\n");
+    }
+
+    matrix.setPixelRGB(i, LEDBuffer1[i]);
+  }
 }

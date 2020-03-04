@@ -15,25 +15,27 @@
 const char* ssid = "Smart_Billboard_AP";
 const char* password =  "12345678";
 // Led Display size dimensions (in # leds)
-size_t height = 1;
-size_t width = 1;
-size_t FLENGTH = 0;
+size_t height = 8;
+size_t width = 8;
+std::string S_height = "8";
+std::string S_width = "8";
 std::string matrixType = "";
 bool isCJMCU = true;
 
 // String data for the Led Driver
 uint8_t stateMachine[5];
 uint8_t filename[100];
-uint8_t animation[4];
-std::string *Delays;
-std::string *DisplayTime;
-std::string *FileNames;
-std::string *Effects;
-
+uint8_t animation[5];
+std::string *FileNames = NULL;
+std::string *Effects = NULL;
+std::string *DisplayTime = NULL;
+std::string *Direction;
+std::string *SlideSpeed;
+size_t numSavedFrames = 0;
 // data buffer
 uint8_t appDataBuffer[MAX_BUFFER_SIZE];
-uint32_t *LEDBuffer1;
-uint32_t *LEDBuffer2;
+uint32_t *LEDBuffer1 = NULL;
+uint32_t *LEDBuffer2 = NULL;
 
 // Globals for the  Web Socket Task (CPU 1)
 TaskHandle_t Web_Server_Task;
@@ -52,6 +54,12 @@ bool liveInputState = false;
 bool defaultState = false;
 bool receivedLiveData = false;
 
+//The timer ISR will be setting this bit to begin frame display.
+volatile bool writeFrameISR = false;
+
+//Timer for default display
+hw_timer_t * timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 
 void WebServerTask(void *parameter){
@@ -63,6 +71,12 @@ void WebServerTask(void *parameter){
   }
 }
 
+void IRAM_ATTR onTimer() {
+  portENTER_CRITICAL_ISR(&timerMux);
+  writeFrameISR = true;
+  portEXIT_CRITICAL_ISR(&timerMux);
+
+}
 //=======================================================================
 //                    Power on setup
 //=======================================================================
@@ -80,15 +94,22 @@ void setup(){
   clearBuffer(stateMachine, 5);
   clearBuffer(filename, 100);
 
+
+
+  clearBuffer(stateMachine,5);
+  clearBuffer(filename,100);
+  clearBuffer(animation,5);
+  // Read Default frame data into RAM
+  // When the file is empty or doesn't exist. Initialize with dummy variables
+  StartUpDefaultFrame();
+  updateBufferLength(width, height);
+  Serial.printf("Size initialized, width: %d, height:%d\n", width,height);
   // Led Driver Setup
-  matrix.updateLength(64);
+  matrix.updateLength(width * height);
   matrix.setPin(GPIO_NUM_26);
   matrix.ESP32_RMT_Init();
-
-  // Read Default frame data into RAM
-  StartUpDefaultFrame();
-
-
+  matrix.resetLeds();
+  matrix.write_leds();
   /* Code below to be used for access point.
   * Connect to Wi-Fi network with SSID and password
   */
@@ -102,10 +123,9 @@ void setup(){
 
   // /* The following section is used for connecting to network wifi*/
   // Using wifi connection for phone app testing
-  // WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
+  WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
   // WiFi.begin("DESKTOP-BDJPBC7 9421", "R0)o9854");
-
-  WiFi.begin("UHWireless","");
+  // WiFi.begin("UHWireless","");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -119,8 +139,14 @@ void setup(){
   server.begin();
   server.onEvent(onWebSocketEvent);
 
-  xTaskCreatePinnedToCore(WebServerTask, "WebTask", 10000, NULL, 1, &Web_Server_Task,1);
+  // prescaler 80 -> 1MHz counter for timer
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &onTimer, true);
+
+
   xTaskCreatePinnedToCore(LedDriverTask, "ESPTask", 10000, NULL, 1, &Led_Driver_Task,0);
+  xTaskCreatePinnedToCore(WebServerTask, "WebTask", 10000, NULL, 1, &Web_Server_Task,1);
+
 
 }
 

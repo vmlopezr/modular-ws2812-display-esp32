@@ -178,68 +178,101 @@ void deletefile(const char *path){
         Serial.println("Delete failed");
     }
 }
-void writeDefaultFrames(const char * defaultData){
+bool writeDefaultFrames(const char * defaultData){
   char *ptr;
   ptr = strtok((char *)defaultData, "\n");
-  size_t arraySize = strtol((const char *)ptr,NULL, 10);
-  // Need to read the size;
-  ptr = strtok(NULL, "\n");
-  height = strtol((const char *)ptr, NULL, 10);
-  ptr = strtok(NULL, "\n");
-  width = strtol((const char *)ptr, NULL, 10);
 
-  updateFrameData(arraySize);
+  numSavedFrames = strtol((const char *)ptr,NULL, 10);
+  if(numSavedFrames == 0){
+      return false;
+  }
+  ptr = strtok(NULL, "\n");
+  if(ptr != NULL){
+    S_height.assign((const char *)ptr);
+    height = strtol((const char *)ptr, NULL, 10);
+  } else return false;
 
-  for(int i = 0; i < arraySize; i++){
+  ptr = strtok(NULL, "\n");
+  if(ptr != NULL) {
+    S_width.assign((const char *)ptr);
+    width = strtol((const char *)ptr, NULL, 10);
+  } else return false;
+  updateFrameData(numSavedFrames);
+
+  for(int i = 0; i < numSavedFrames; i++){
     ptr = strtok(NULL,"\n");
     if(ptr != NULL){
       FileNames[i].assign((const char *)ptr);
-    } else return;
+    } else return false;
 
     ptr = strtok(NULL,"\n");
     if(ptr != NULL) {
       Effects[i].assign((const char *)ptr);
-    } else return;
+    } else return false;
 
     ptr = strtok(NULL,"\n");
     if(ptr != NULL){
       DisplayTime[i].assign((const char *)ptr);
-    } else return;
-
-    ptr = strtok(NULL,"\n");
-    if(ptr != NULL) {
-      Delays[i].assign((const char *)ptr);
-    } else return;
+    } else return false;
   }
-
+  return true;
+}
+void defaultInitialization() {
+    height = 8;
+    S_height = "8";
+    width = 8;
+    S_width = 8;
+    numSavedFrames = 0;
+    Effects= NULL;
+    DisplayTime= NULL;
+    FileNames= NULL;
 }
 void StartUpDefaultFrame() {
     File file = SD.open("/Production/DefaultDisplay.txt");
     if(!file){
         Serial.printf("Failed to open file for reading: default\n");
+        defaultInitialization();
+        return;
+    }
+    if(file.available() < 5){
+        Serial.printf("Necessary test not found in the file. The file is probably corrupted.\n");
+        defaultInitialization();
         return;
     }
     file.read(appDataBuffer, (size_t)file.available());
     writeDefaultFrames((const char *)appDataBuffer);
     file.close();
 }
+void resetFrameData(){
+  delete[] Effects;
+  delete[] DisplayTime;
+  delete[] FileNames;
+  numSavedFrames = 0;
+  Effects =  NULL;
+  DisplayTime =  NULL;
+  FileNames =  NULL;
+  Serial.printf("Reset the frame data \n");
+}
 void updateFrameData(size_t arraySize){
   delete[] Effects;
   delete[] DisplayTime;
   delete[] FileNames;
-  delete[] Delays;
-
   try {
     Effects = new std::string[arraySize];
     FileNames = new std::string[arraySize];
     DisplayTime = new std::string[arraySize];
-    Delays = new std::string[arraySize];
   }
   catch(std::bad_alloc){
     Serial.printf("Bad Allocation on frame data update.\n");
-    FLENGTH = 0;
+    numSavedFrames = 0;
+    Effects =  NULL;
+    DisplayTime =  NULL;
+    FileNames =  NULL;
     return;
   }
 
-  FLENGTH = arraySize;
+  numSavedFrames = arraySize;
+}
+void resetBuffer(uint32_t * buffer){
+    memset(buffer, 0, matrix.NUM_LEDS);
 }

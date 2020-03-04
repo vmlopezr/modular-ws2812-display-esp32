@@ -56,5 +56,7 @@ public:
   // Set pixal via 32 bit integer
   void setPixelRGB(uint32_t index, uint32_t colorData);
 
+  // Set the new Index with the value of the old index
+  void copyIndex(uint32_t oldIndex, uint32_t newIndex);
 };
 #endif

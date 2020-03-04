@@ -6,4 +6,5 @@
 
 void LedDriverTask(void *parameter);
 void processLiveData();
+size_t getNumericDec(const char * number);
 #endif
