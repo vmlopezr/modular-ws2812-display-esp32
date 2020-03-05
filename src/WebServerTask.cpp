@@ -50,13 +50,13 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
           liveInputState = false;
           animationState = false;
           appInput = false;
-          Serial.printf("Currently in settings\n");
+          // Serial.printf("Currently in settings\n");
         } else if(!strcmp("EDEF",(const char *)appDataBuffer)) {
           defaultState = false;
           liveInputState = false;
           animationState = false;
           appInput = false;
-          Serial.printf("Currently in Default Input\n");
+          // Serial.printf("Currently in Default Input\n");
         } else if (!strcmp("read", (const char *)appDataBuffer)){
 
           readFileAction(num, payload);
@@ -95,7 +95,7 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
         } else if(!strcmp("ANIM", (const char *)appDataBuffer)){
           // Enter Animation State
-          Serial.printf("Animation Input: %s\n", (const char*)payload);
+          // Serial.printf("Animation Input: %s\n", (const char*)payload);
           AnimationAction((const char *)(payload+4));
 
         }else if(!strcmp("CLRI", (const char*)appDataBuffer)){
@@ -111,7 +111,7 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
           appendFileAction(num, length, payload);
 
         } else if(!strcmp("SDEF", (const char*)appDataBuffer)){
-
+          // Serial.printf("%s\n", (const char *) payload);
           writefile("/Production/DefaultDisplay.txt", (const char *)(payload+4));
           strcpy((char *)appDataBuffer, (const char *)(payload+4));
           if(!writeDefaultFrames((const char *)appDataBuffer)){
@@ -302,6 +302,10 @@ void updateMatrixTypeData( uint8_t * mType) {
 
 void getDefaultFrames(uint8_t client){
   clearBuffer(appDataBuffer,4);
+  strcat((char *)appDataBuffer, S_width.c_str());
+  strcat((char *)appDataBuffer, ",");
+  strcat((char *)appDataBuffer, S_height.c_str());
+  strcat((char *)appDataBuffer, "\n");
   for(int i = 0; i < numSavedFrames; i++){
     strcat((char *)appDataBuffer, FileNames[i].c_str());
     strcat((char *)appDataBuffer, ",");
@@ -312,13 +316,15 @@ void getDefaultFrames(uint8_t client){
     strcat((char *)appDataBuffer, Direction[i].c_str());
     strcat((char *)appDataBuffer, ",");
     strcat((char *)appDataBuffer, SlideSpeed[i].c_str());
+    strcat((char *)appDataBuffer, ",");
+    strcat((char *)appDataBuffer, BlinkTime[i].c_str());
     strcat((char *)appDataBuffer, "\n");
   }
   server.sendTXT(client,(const char *)appDataBuffer);
   server.sendTXT(client, "EX1T");
 }
 void sendSize(uint8_t client){
-  clearBuffer(appDataBuffer, 50);
+  clearBuffer(appDataBuffer, 100);
   strcat((char *)appDataBuffer, S_height.c_str());
   strcat((char *)appDataBuffer," ");
   strcat((char *)appDataBuffer, S_width.c_str());
@@ -326,18 +332,14 @@ void sendSize(uint8_t client){
 }
 void updateBufferLength(int newWidth, int newHeight){
   delete[] LEDBuffer1;
-  delete[] LEDBuffer2;
   const size_t length = newWidth*newHeight;
   try {
     LEDBuffer1 = new uint32_t[length];
-    LEDBuffer2 = new uint32_t[length];
   }
     catch(std::bad_alloc){
       LEDBuffer1 = NULL;
-      LEDBuffer2 = NULL;
       Serial.printf("Bad Allocation on length update for LED Buffers.\n");
     return;
   }
   memset(LEDBuffer1, 0, length);
-  memset(LEDBuffer2, 0, length);
 }

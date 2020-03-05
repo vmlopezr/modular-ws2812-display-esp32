@@ -114,32 +114,30 @@ void LedDriverTask(void *parameter){
                   blinkTotalTime = 0;
                   startBlink = true;
                 }
-                ISR_Delay = 10000000;
+                ISR_Delay = getNumericDec(BlinkTime[frameIndex].c_str()) * 1000000;
+                // ISR_Delay = 10000000;
+                if(ISR_Delay >= getNumericDec(DisplayTime[frameIndex].c_str())*1000000){
+                  ISR_Delay = getNumericDec(DisplayTime[frameIndex].c_str())*1000000;
+                }
+
                 blinkTotalTime+=ISR_Delay;
                 timerAlarmWrite(timer, ISR_Delay , true);
                 if(!toggleBlink){
-                  Serial.printf("turning on\n");
                   toggleBlink = true;
                   loadDataFromStorage(matrix, FileNames[frameIndex].c_str());
                   matrix.write_leds();
                 } else {
-                  Serial.printf("turning off\n");
                   toggleBlink = false;
                   matrix.resetLeds();
                   matrix.write_leds();
                 }
 
-
-                if(blinkTotalTime >= getNumericDec(Effects[frameIndex].c_str())*1000000){
+                if(blinkTotalTime >= getNumericDec(DisplayTime[frameIndex].c_str())*1000000){
                   frameIndex++;
                   startBlink = false;
                   toggleBlink = false;
                 }
-
-
               }
-
-
             }
             delay(1);
           }
@@ -149,6 +147,7 @@ void LedDriverTask(void *parameter){
           }
         }
         timerAlarmDisable(timer);
+
       // Animation state: Display the animation chosen by the user.
       // The PIXL animation may be used for verifying LED Matrix connections.
       } else if(!strcmp("ANIM", (const char*)stateMachine)){
@@ -222,12 +221,10 @@ void LedDriverTask(void *parameter){
       } else if(!strcmp("OPEN", (const char*)stateMachine)){
         fileLock = true;
         clearBuffer(stateMachine, 4);
-        unsigned long start = micros();
         loadDataFromStorage(matrix, (const char *)filename);
         fileLock = false;
-
         matrix.write_leds();
-        Serial.printf("read time: %lu\n", micros() - start);
+
         clearBuffer(filename,strlen((const char *)filename));
         if(liveInputState) {
           strncpy((char *) stateMachine, "LIVE", 4);

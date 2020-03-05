@@ -214,15 +214,20 @@ bool writeDefaultFrames(const char * defaultData){
     if(ptr != NULL){
       DisplayTime[i].assign((const char *)ptr);
     } else return false;
+
     ptr = strtok(NULL,"\n");
     if(ptr != NULL){
       Direction[i].assign((const char *)ptr);
     } else return false;
-        ptr = strtok(NULL,"\n");
+
+    ptr = strtok(NULL,"\n");
     if(ptr != NULL){
       SlideSpeed[i].assign((const char *)ptr);
     } else return false;
-    Serial.printf("%s %s %s %s\n", Effects[i].c_str(), DisplayTime[i].c_str(), Direction[i].c_str(), SlideSpeed[i].c_str());
+    ptr = strtok(NULL,"\n");
+    if(ptr != NULL){
+      BlinkTime[i].assign((const char *)ptr);
+    } else return false;
   }
   return true;
 }
@@ -237,6 +242,7 @@ void defaultInitialization() {
     FileNames= NULL;
     Direction = NULL;
     SlideSpeed = NULL;
+    BlinkTime = NULL;
 }
 void StartUpDefaultFrame() {
     File file = SD.open("/Production/DefaultDisplay.txt");
@@ -260,12 +266,14 @@ void resetFrameData(){
   delete[] FileNames;
   delete[] Direction;
   delete[] SlideSpeed;
+  delete[] BlinkTime;
   numSavedFrames = 0;
   Effects =  NULL;
   DisplayTime =  NULL;
   FileNames =  NULL;
   Direction = NULL;
   SlideSpeed = NULL;
+  BlinkTime = NULL;
   Serial.printf("Reset the frame data \n");
 }
 void updateFrameData(size_t arraySize){
@@ -274,12 +282,14 @@ void updateFrameData(size_t arraySize){
   delete[] FileNames;
   delete[] Direction;
   delete[] SlideSpeed;
+  delete[] BlinkTime;
   try {
     Effects = new std::string[arraySize];
     FileNames = new std::string[arraySize];
     DisplayTime = new std::string[arraySize];
     Direction = new std::string[arraySize];
     SlideSpeed = new std::string[arraySize];
+    BlinkTime = new std::string[arraySize];
   }
   catch(std::bad_alloc){
     Serial.printf("Bad Allocation on frame data update.\n");
@@ -289,6 +299,7 @@ void updateFrameData(size_t arraySize){
     FileNames =  NULL;
     Direction = NULL;
     SlideSpeed = NULL;
+    BlinkTime = NULL;
     return;
   }
 

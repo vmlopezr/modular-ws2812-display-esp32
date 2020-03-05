@@ -80,10 +80,6 @@ void loadDataToBuffer(uint32_t *buffer, const char* filename){
 }
 void writeBufferToLed(uint32_t *buffer){
   for(int i = 0; i < matrix.NUM_LEDS; i++){
-    if(i >= matrix.NUM_LEDS){
-      Serial.printf("equal to max size\n");
-    }
-
     matrix.setPixelRGB(i, LEDBuffer1[i]);
   }
 }
