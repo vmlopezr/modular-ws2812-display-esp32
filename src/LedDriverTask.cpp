@@ -36,15 +36,16 @@ void LedDriverTask(void *parameter){
         size_t currentCol = 0;
         size_t ISR_Delay = 500000; // wait one second before triggering interrupt
         // Minimum ISR Delay for sliding is 100000us ~ .1 down to 50000 ~ .05 s
-        if(numSavedFrames == 1){
-          loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
-          loadDataToBuffer(LEDBuffer1, FileNames[frameIndex].c_str());
-        }
+
 
         timerAlarmWrite(timer, ISR_Delay, true);
         timerAlarmEnable(timer);
         Serial.printf("Default State\n");
         if(numSavedFrames > 0){
+          if(numSavedFrames == 1){
+            loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
+            loadDataToBuffer(LEDBuffer1, FileNames[frameIndex].c_str());
+          }
           while(defaultState){
             if(writeFrameISR){
               portENTER_CRITICAL(&timerMux);
@@ -115,7 +116,6 @@ void LedDriverTask(void *parameter){
                   startBlink = true;
                 }
                 ISR_Delay = getNumericDec(BlinkTime[frameIndex].c_str()) * 1000000;
-                // ISR_Delay = 10000000;
                 if(ISR_Delay >= getNumericDec(DisplayTime[frameIndex].c_str())*1000000){
                   ISR_Delay = getNumericDec(DisplayTime[frameIndex].c_str())*1000000;
                 }

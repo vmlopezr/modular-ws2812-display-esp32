@@ -27,10 +27,10 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
       // New client has connected
       case WStype_CONNECTED:
         {
-          server.sendTXT(num, "ACCEPT");
           IPAddress ip = server.remoteIP(num);
           Serial.printf("[%u] Connection from ", num);
           Serial.println(ip.toString());
+          sendSize(num);
         }
         break;
 
@@ -64,21 +64,20 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
         } else if (!strcmp("DFRD",(const char *)appDataBuffer)){
           defaultReadAction(num, payload);
 
-        } else if (!strcmp("GTSZ",(const char *)appDataBuffer)) {
-          sendSize(num);
-
-        } else if (!strcmp("size",(const char *)appDataBuffer)){
-
-          //TODO: IMPORTANT when size changes, move DefaultDisplay.txt, to a new file "PreviousDisplay.txt", makeDefaultDisplay.txt empty
-          //File file = SD.open("/Production/DefaultDisplay.txt");
-          bool sizeChanged = updateDisplaySize((char *)(payload+4), height, width);
+        }
+        else if (!strcmp("size",(const char *)appDataBuffer)){
+          Serial.printf("size update: %s\n", (const char *)(payload+4));
+          bool sizeChanged = updateSettings((char *)(payload+4), height, width, matrixType);
 
           // Update the buffer and led arrays on size changes
           if(sizeChanged){
             matrix.updateLength(height*width);
-            updateBufferLength(width, height);
+            Serial.printf("updated matrix size\n");
+            // updateBufferLength(width, height);
+            Serial.printf("updated buffer length\n");
             matrix.resetLeds();
             matrix.write_leds();
+            Serial.printf("reset leds after size change\n");
           }
           if(!defaultState){
             defaultState = true;
@@ -112,9 +111,13 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
         } else if(!strcmp("SDEF", (const char*)appDataBuffer)){
           // Serial.printf("%s\n", (const char *) payload);
+          if(!SD.exists("/Production")){
+            SD.mkdir("/Production");
+            Serial.printf("Production Folder did not exist\n");
+          }
           writefile("/Production/DefaultDisplay.txt", (const char *)(payload+4));
           strcpy((char *)appDataBuffer, (const char *)(payload+4));
-          if(!writeDefaultFrames((const char *)appDataBuffer)){
+          if(!readDefaultFrames((const char *)appDataBuffer)){
             //Reset Default Frame Array data
             resetFrameData();
           }
@@ -127,7 +130,7 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
           server.sendTXT(num, "SUXS");
 
-        } else if(!strcmp("dels", (const char*)appDataBuffer)){
+        } else if(!strcmp("DELS", (const char*)appDataBuffer)){
 
           deletefile((const char*)(payload+4));
 
@@ -161,29 +164,39 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
         break;
     }
   } else {
-    server.sendTXT(num, "REJECT");
+    server.sendTXT(num, "REJECT\n");
   }
 }
 
-bool updateDisplaySize(char * data, size_t &oldHeight, size_t &oldWidth){
+bool updateSettings(char * data, size_t &oldHeight, size_t &oldWidth, std::string& matrixType){
   int temp;
-  char *size;
+  char *ptr;
   bool sizeChanged = false;
 
-  size = strtok((char *) data, " ");
-  temp = strtol((const char*)size, NULL, 10);
-  size = strtok(NULL, " ");
+  ptr = strtok( data, " ");
+  temp = strtol((const char*)ptr, NULL, 10);
+  ptr = strtok(NULL, " ");
 
   if(temp != oldHeight){
     oldHeight = temp;
     sizeChanged = true;
   }
 
-  temp = strtol((const char*)size, NULL, 10);
+  temp = strtol((const char*)ptr, NULL, 10);
 
   if( temp != oldWidth){
     oldWidth = temp;
     sizeChanged = true;
+  }
+
+  ptr = strtok(NULL, " ");
+  matrixType.assign((const char *)ptr);
+
+  Serial.printf("w: %d h: %d type: %s\n", oldWidth, oldHeight, matrixType.c_str());
+  if(!strcmp("CJMCU-64",matrixType.c_str())){
+    isCJMCU = true;
+  } else {
+    isCJMCU = false;
   }
   return sizeChanged;
 }
@@ -325,18 +338,32 @@ void getDefaultFrames(uint8_t client){
 }
 void sendSize(uint8_t client){
   clearBuffer(appDataBuffer, 100);
+  strcat((char *)appDataBuffer, "ACCEPT\n");
   strcat((char *)appDataBuffer, S_height.c_str());
-  strcat((char *)appDataBuffer," ");
+  strcat((char *)appDataBuffer,"\n");
   strcat((char *)appDataBuffer, S_width.c_str());
+  strcat((char *)appDataBuffer, "\n");
+  strcat((char *)appDataBuffer, matrixType.c_str());
+  strcat((char *)appDataBuffer, "\n");
+
+  for(int i = 0; i < numSavedFrames; i++){
+    strcat((char *)appDataBuffer, FileNames[i].c_str());
+    if(i != numSavedFrames - 1) strcat((char *)appDataBuffer, ",");
+  }
   server.sendTXT(client, (const char *)appDataBuffer);
 }
-void updateBufferLength(int newWidth, int newHeight){
+void updateBufferLength(const size_t newWidth, const size_t newHeight){
+  Serial.printf("inside buffer function\n");
   delete[] LEDBuffer1;
+  LEDBuffer1 = NULL;
+  Serial.printf("deleted old buffer\n");
+
   const size_t length = newWidth*newHeight;
   try {
     LEDBuffer1 = new uint32_t[length];
+    Serial.printf("attempt to set new size\n");
   }
-    catch(std::bad_alloc){
+  catch(std::bad_alloc){
       LEDBuffer1 = NULL;
       Serial.printf("Bad Allocation on length update for LED Buffers.\n");
     return;

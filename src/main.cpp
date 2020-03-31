@@ -94,15 +94,15 @@ void setup(){
   clearBuffer(stateMachine, 5);
   clearBuffer(filename, 100);
 
-
-
+//NOTE ERRORS: When changing sizes and going directly to live input
+//NOTE OFFLINE ERROR: Attempt to send sizes only if live connection is on. This is an error in the frontend.
   clearBuffer(stateMachine,5);
   clearBuffer(filename,100);
   clearBuffer(animation,5);
   // Read Default frame data into RAM
   // When the file is empty or doesn't exist. Initialize with dummy variables
   StartUpDefaultFrame();
-  updateBufferLength(width, height);
+  // updateBufferLength(width, height);
   Serial.printf("Size initialized, width: %d, height:%d\n", width,height);
   // Led Driver Setup
   matrix.updateLength(width * height);
@@ -122,6 +122,10 @@ void setup(){
   Serial.print("AP IP address: ");
   Serial.println(IP);
 
+
+/* TODO: On start up read, add options for using Accesss point or wifi Network*/
+
+
   // /* The following section is used for connecting to network wifi*/
   // Using wifi connection for phone app testing
   // WiFi.begin("ATT2sca5xw", "3#9jry27c%f4");
@@ -134,7 +138,7 @@ void setup(){
   // }
 
   // HTTP access points
-  // Serial.println(WiFi.localIP());
+  Serial.println(WiFi.localIP());
 
    // Start WebSocket server and assign callback
   server.begin();
@@ -145,8 +149,8 @@ void setup(){
   timerAttachInterrupt(timer, &onTimer, true);
 
 
-  xTaskCreatePinnedToCore(LedDriverTask, "ESPTask", 10000, NULL, 1, &Led_Driver_Task,0);
-  xTaskCreatePinnedToCore(WebServerTask, "WebTask", 10000, NULL, 1, &Web_Server_Task,1);
+  xTaskCreatePinnedToCore(LedDriverTask, "ESPTask", 15000, NULL, 1, &Led_Driver_Task,0);
+  xTaskCreatePinnedToCore(WebServerTask, "WebTask", 15000, NULL, 1, &Web_Server_Task,1);
 
 
 }

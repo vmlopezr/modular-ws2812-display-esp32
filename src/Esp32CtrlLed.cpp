@@ -35,6 +35,7 @@ void Esp32CtrlLed::setBrightness(uint8_t brightness){
 void Esp32CtrlLed::updateLength(size_t Led_Num) {
   delete[] LedData;
   uint32_t newSize = Led_Num * BITS_PER_LED_CMD;
+  rmt_item32_t test;
 
   // Attempt to allocate new data array
   try {
@@ -49,6 +50,8 @@ void Esp32CtrlLed::updateLength(size_t Led_Num) {
   }
   NUM_LEDS = Led_Num;
   LED_BUFFER_SIZE = newSize;
+
+  Serial.printf("uint32 size: %d size: %d heapsize:%d max alloc: %d free head: %d\n", sizeof(uint32_t), sizeof(test), ESP.getHeapSize(), ESP.getMaxAllocHeap(), ESP.getFreeHeap());
 }
 
 /* Setup the hardware peripheral. Only call this once.             */

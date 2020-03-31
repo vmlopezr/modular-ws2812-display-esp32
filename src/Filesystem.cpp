@@ -163,7 +163,6 @@ void appendfile(uint8_t client, const char *filename, uint8_t *payload, const ch
 }
 
 void renamefile(const char *path1, const char *path2){
-
     if (SD.rename(path1, path2)) {
         Serial.println("File renamed");
     } else {
@@ -178,14 +177,12 @@ void deletefile(const char *path){
         Serial.println("Delete failed");
     }
 }
-bool writeDefaultFrames(const char * defaultData){
+bool readDefaultFrames(const char * defaultData){
   char *ptr;
   ptr = strtok((char *)defaultData, "\n");
 
   numSavedFrames = strtol((const char *)ptr,NULL, 10);
-  if(numSavedFrames == 0){
-      return false;
-  }
+
   ptr = strtok(NULL, "\n");
   if(ptr != NULL){
     S_height.assign((const char *)ptr);
@@ -197,6 +194,18 @@ bool writeDefaultFrames(const char * defaultData){
     S_width.assign((const char *)ptr);
     width = strtol((const char *)ptr, NULL, 10);
   } else return false;
+
+  ptr = strtok(NULL, "\n");
+  if(ptr != NULL) {
+    matrixType.assign((const char *)ptr);
+  } else return false;
+
+  if(numSavedFrames == 0){
+      // return when no frames to display by default
+      return false;
+  }
+
+  // Resize frame arrays
   updateFrameData(numSavedFrames);
 
   for(int i = 0; i < numSavedFrames; i++){
@@ -235,7 +244,7 @@ void defaultInitialization() {
     height = 8;
     S_height = "8";
     width = 8;
-    S_width = 8;
+    S_width = "8";
     numSavedFrames = 0;
     Effects= NULL;
     DisplayTime= NULL;
@@ -257,7 +266,7 @@ void StartUpDefaultFrame() {
         return;
     }
     file.read(appDataBuffer, (size_t)file.available());
-    writeDefaultFrames((const char *)appDataBuffer);
+    readDefaultFrames((const char *)appDataBuffer);
     file.close();
 }
 void resetFrameData(){
