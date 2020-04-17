@@ -14,7 +14,6 @@ void LedDriverTask(void *parameter){
 
   matrix.resetLeds();
   matrix.write_leds();
-  Serial.printf("Led Driver State Machine\n");
 
   // Set Initial state to Default Loop
   appInput = true;
@@ -40,7 +39,6 @@ void LedDriverTask(void *parameter){
 
         timerAlarmWrite(timer, ISR_Delay, true);
         timerAlarmEnable(timer);
-        Serial.printf("Default State\n");
         if(numSavedFrames > 0){
           if(numSavedFrames == 1){
             loadDataFromStorage(matrix,FileNames[frameIndex].c_str());
@@ -153,7 +151,6 @@ void LedDriverTask(void *parameter){
       } else if(!strcmp("ANIM", (const char*)stateMachine)){
         clearBuffer(stateMachine, 4);
         appInput = false;
-        Serial.printf("Start Animation %s\n", (const char *)animation);
 
         matrix.resetLeds();
         matrix.write_leds();
@@ -246,7 +243,6 @@ void LedDriverTask(void *parameter){
       } else if(!strcmp("LIVE", (const char *)stateMachine)){
         appInput = false;
         clearBuffer(stateMachine, 4);
-        Serial.printf("Live input\n");
         while(liveInputState){
 
           if(receivedLiveData){

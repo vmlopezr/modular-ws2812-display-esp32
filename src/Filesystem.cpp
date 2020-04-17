@@ -283,7 +283,6 @@ void resetFrameData(){
   Direction = NULL;
   SlideSpeed = NULL;
   BlinkTime = NULL;
-  Serial.printf("Reset the frame data \n");
 }
 void updateFrameData(size_t arraySize){
   delete[] Effects;

@@ -102,7 +102,7 @@ void setup(){
   // Read Default frame data into RAM
   // When the file is empty or doesn't exist. Initialize with dummy variables
   StartUpDefaultFrame();
-  // updateBufferLength(width, height);
+  updateBufferLength(width, height);
   Serial.printf("Size initialized, width: %d, height:%d\n", width,height);
   // Led Driver Setup
   matrix.updateLength(width * height);
@@ -138,7 +138,7 @@ void setup(){
   // }
 
   // HTTP access points
-  Serial.println(WiFi.localIP());
+  // Serial.println(WiFi.localIP());
 
    // Start WebSocket server and assign callback
   server.begin();

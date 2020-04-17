@@ -50,13 +50,12 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
           liveInputState = false;
           animationState = false;
           appInput = false;
-          // Serial.printf("Currently in settings\n");
+
         } else if(!strcmp("EDEF",(const char *)appDataBuffer)) {
           defaultState = false;
           liveInputState = false;
           animationState = false;
           appInput = false;
-          // Serial.printf("Currently in Default Input\n");
         } else if (!strcmp("read", (const char *)appDataBuffer)){
 
           readFileAction(num, payload);
@@ -66,18 +65,14 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
         }
         else if (!strcmp("size",(const char *)appDataBuffer)){
-          Serial.printf("size update: %s\n", (const char *)(payload+4));
           bool sizeChanged = updateSettings((char *)(payload+4), height, width, matrixType);
 
           // Update the buffer and led arrays on size changes
           if(sizeChanged){
             matrix.updateLength(height*width);
-            Serial.printf("updated matrix size\n");
-            // updateBufferLength(width, height);
-            Serial.printf("updated buffer length\n");
+            updateBufferLength(width, height);
             matrix.resetLeds();
             matrix.write_leds();
-            Serial.printf("reset leds after size change\n");
           }
           if(!defaultState){
             defaultState = true;
@@ -94,7 +89,6 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
 
         } else if(!strcmp("ANIM", (const char *)appDataBuffer)){
           // Enter Animation State
-          // Serial.printf("Animation Input: %s\n", (const char*)payload);
           AnimationAction((const char *)(payload+4));
 
         }else if(!strcmp("CLRI", (const char*)appDataBuffer)){
@@ -110,7 +104,6 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng
           appendFileAction(num, length, payload);
 
         } else if(!strcmp("SDEF", (const char*)appDataBuffer)){
-          // Serial.printf("%s\n", (const char *) payload);
           if(!SD.exists("/Production")){
             SD.mkdir("/Production");
             Serial.printf("Production Folder did not exist\n");
@@ -192,7 +185,6 @@ bool updateSettings(char * data, size_t &oldHeight, size_t &oldWidth, std::strin
   ptr = strtok(NULL, " ");
   matrixType.assign((const char *)ptr);
 
-  Serial.printf("w: %d h: %d type: %s\n", oldWidth, oldHeight, matrixType.c_str());
   if(!strcmp("CJMCU-64",matrixType.c_str())){
     isCJMCU = true;
   } else {
@@ -353,15 +345,12 @@ void sendSize(uint8_t client){
   server.sendTXT(client, (const char *)appDataBuffer);
 }
 void updateBufferLength(const size_t newWidth, const size_t newHeight){
-  Serial.printf("inside buffer function\n");
   delete[] LEDBuffer1;
   LEDBuffer1 = NULL;
-  Serial.printf("deleted old buffer\n");
 
   const size_t length = newWidth*newHeight;
   try {
     LEDBuffer1 = new uint32_t[length];
-    Serial.printf("attempt to set new size\n");
   }
   catch(std::bad_alloc){
       LEDBuffer1 = NULL;

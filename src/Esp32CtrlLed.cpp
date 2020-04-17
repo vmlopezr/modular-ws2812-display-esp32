@@ -35,7 +35,6 @@ void Esp32CtrlLed::setBrightness(uint8_t brightness){
 void Esp32CtrlLed::updateLength(size_t Led_Num) {
   delete[] LedData;
   uint32_t newSize = Led_Num * BITS_PER_LED_CMD;
-  rmt_item32_t test;
 
   // Attempt to allocate new data array
   try {
@@ -51,7 +50,7 @@ void Esp32CtrlLed::updateLength(size_t Led_Num) {
   NUM_LEDS = Led_Num;
   LED_BUFFER_SIZE = newSize;
 
-  Serial.printf("uint32 size: %d size: %d heapsize:%d max alloc: %d free head: %d\n", sizeof(uint32_t), sizeof(test), ESP.getHeapSize(), ESP.getMaxAllocHeap(), ESP.getFreeHeap());
+  // Serial.printf("uint32 size: %d size: %d heapsize:%d max alloc: %d free head: %d\n", sizeof(uint32_t), sizeof(test), ESP.getHeapSize(), ESP.getMaxAllocHeap(), ESP.getFreeHeap());
 }
 
 /* Setup the hardware peripheral. Only call this once.             */
@@ -86,24 +85,30 @@ void Esp32CtrlLed::resetLeds() {
 
 /* Set a pixel with separate R, G, B values.                    */
 void Esp32CtrlLed::setPixelRGB(uint32_t index, uint8_t r, uint8_t g, uint8_t b) {
+  // uint32_t LedOFF = 0x00210048;
+  // uint32_t LedON = 0x00490030;
   if(index < NUM_LEDS){
     uint32_t bits_to_send = (g << 16) + (r << 8) + b;
     for (uint8_t bit = 0; bit < BITS_PER_LED_CMD; bit++) {
       LedData[index * BITS_PER_LED_CMD + bit] = getNthBit(bits_to_send, 23 - bit) ?
                                                       (rmt_item32_t){{{T1H, 1, T1L, 0}}} :
                                                       (rmt_item32_t){{{T0H, 1, T0L, 0}}};
+      // LedData[index * BITS_PER_LED_CMD + bit] = getNthBit(bits_to_send, 23-bit) ? (rmt_item32_t){{LedON}} : (rmt_item32_t){{LedOFF}};
     }
   }
 }
 
 /* Set a pixel from a 32 bit color value  GRB, input in RGB               */
 void Esp32CtrlLed::setPixelRGB(uint32_t index, uint32_t colorData) {
+  // uint32_t LedOFF = 0x00210048;
+  // uint32_t LedON = 0x00490030;
   if( index < NUM_LEDS ){
     uint32_t bits_to_send = (((colorData >> 8) & 0xFF) << 16) + (((colorData >> 16) & 0xFF)<< 8) + (colorData & 0xFF);
     for (uint8_t bit = 0; bit < BITS_PER_LED_CMD; bit++) {
       LedData[index * BITS_PER_LED_CMD + bit] = getNthBit(bits_to_send, 23 - bit) ?
                                                       (rmt_item32_t){{{T1H, 1, T1L, 0}}} :
                                                       (rmt_item32_t){{{T0H, 1, T0L, 0}}};
+      // LedData[index * BITS_PER_LED_CMD + bit] = getNthBit(bits_to_send, 23-bit) ? (rmt_item32_t){{LedON}} : (rmt_item32_t){{LedOFF}};
     }
   }
 }

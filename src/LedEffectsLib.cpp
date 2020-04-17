@@ -100,7 +100,6 @@ void HorizontalLine(uint8_t rowindex, uint8_t prevRowIndex, uint8_t width, uint8
 }
 void addRow(const char * Direction, uint32_t * buffer, uint32_t buffer_row){
   if(!strcmp("Up", Direction)){ // The frame is shifting up
-  // Serial.printf("slide up\n");
     size_t matrix_index = 0;
     size_t buffer_index = 0;
 
@@ -110,7 +109,6 @@ void addRow(const char * Direction, uint32_t * buffer, uint32_t buffer_row){
       matrix.setPixelRGB(matrix_index, buffer[buffer_index]);
     }
   } else { // The frame is shifting down
-  // Serial.printf("Slide Down\n");
     size_t matrix_index = 0;
     size_t buffer_index = 0;
     for(int col = 0; col < height; col++){
@@ -127,9 +125,24 @@ void SinglePixel(uint8_t rowindex, uint8_t previndex, uint32_t color){
 
 // Maps the associated pixel in the matrix to the index of the contiguous array
 size_t getPixelIndex(int x, int y){
-  if(isCJMCU == 0 && x%2 == 1){
-    return 8*(x%8)+(7 - y%8) +  64*((int)(x/8)) + width*8*((int)(y/8));
-  } else {
+  if(!strcmp("CJMCU-64", matrixType.c_str())){
     return 8*(x%8)+(y%8) +  64*((int)(x/8)) + width*8*((int)(y/8));
+  } else if (!strcmp("WS-2812-8x8", matrixType.c_str())){
+      // Add the two options for the extra matrix types
+    if(x%2 == 1){
+      return 8*(x%8)+(7 - y%8) +  64*((int)(x/8)) + width*8*((int)(y/8));
+    } else {
+      return 8*(x%8)+(y%8) +  64*((int)(x/8)) + width*8*((int)(y/8));
+    }
+  } else if (!strcmp("CUSTOM-CJMCU", matrixType.c_str())){
+    return y + x * height;
+  } else if (!strcmp("CUSTOM-WS-2812", matrixType.c_str())){
+    if(x%2 ==1){
+      return height - 1 - y + x*height;
+    } else {
+      return y + x * height;
+    }
+  } else {
+    return 0;
   }
 }
