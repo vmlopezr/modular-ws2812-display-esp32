@@ -1,7 +1,9 @@
-/*    The following code has been written to control WS2812 Leds. This library is intended for use with 8x8 matrices, but may be used
- *    with the leds in general. This was written using PlatformIO using the arduino framework for ESP32.
+/*    The following code has been written to control WS2812 Leds. This library is
+ *    intended for use with 8x8 matrices, but may be used with the leds in general.
+ *    This was written using PlatformIO using the arduino framework for ESP32.
  *
- *    Credit to JSchaenzle: https://github.com/JSchaenzle/ESP32-NeoPixel-WS2812-RMT - This wrapper class uses the RMT code found in the link.
+ *    Credit to JSchaenzle: https://github.com/JSchaenzle/ESP32-NeoPixel-WS2812-RMT -
+ *    This wrapper class uses the RMT code found in the link.
  * */
 
 #ifndef EESP32CTRLLED_H
@@ -33,30 +35,79 @@ public:
   Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin, uint8_t brightness);
   ~Esp32CtrlLed();
 
-  // Set specific pin
+  /**
+    @brief Set the pin number for the LED display data signal.
+
+    @param pin Target pin for data signal.
+  */
   void setPin(gpio_num_t pin);
+
+  /**
+    @brief Set the brightness for the LED display. This is used as a ratio to
+    multiplied to color values later on.
+
+    @param brightness Brightness level to be used. range (1,255)
+  */
   void setBrightness(uint8_t brightness);
-  // Change the length of the led array
+
+  /**
+    @brief Change the size of the dynamic LED array. This array holds the
+    color levels to be written by the rmt peripheral.
+
+    @param length New length of the LED array.
+  */
   void updateLength(uint32_t length);
 
+  /**
+      @brief Gets the input bit of the number, and returns it as a base ten unsigned int.
+
+      @param number Input value.
+      @param bit Target bit to be retrieved.
+      @return Bit converted to base 10 value.
+  */
   uint8_t getNthBit(uint32_t number, uint8_t bit);
 
-  // Setup the hardware peripheral. Only call this once.
+  /**
+      @brief Initialize the RMT peripheral. This function may only be called once.
+  */
   void ESP32_RMT_Init(void);
 
-  // Write the Led Data to the
+  /**
+    @brief Write the LED Data in the to the WS2812 display. The RMT peripheral
+    produces the data signal.
+  */
   void write_leds();
 
-  // Clear the WS2812 LEDs
+  /**
+    @brief Clear the LED display. Writes 0 for each of the RGB LED in a pixel.
+  */
   void resetLeds();
 
-  // Set pixel via separate r, g, b values
+  /**
+    @brief Set the data values for the pixel at the specific index.
+
+    @param index The index of the LED in the LED array.
+    @param r The value for the red LED. ranges from 1 to 255
+    @param g The value for the green LED. ranges from 1 to 255
+    @param b The value for the blue LED. ranges from 1 to 255
+  */
   void setPixelRGB(uint32_t index, uint8_t r, uint8_t g, uint8_t b);
 
-  // Set pixal via 32 bit integer
+  /**
+    @brief Set the data values for the pixel at the specific index.
+
+    @param index The index of the LED in the LED array.
+    @param colorData The color for the specific pixel. Must formatted as 0x00RRGGBB
+  */
   void setPixelRGB(uint32_t index, uint32_t colorData);
 
-  // Set the new Index with the value of the old index
+  /**
+    @brief Copy the LED pixel value of oldIndex into the new index.
+    This is useful for shifting frames on the display.
+
+    @param oldIndex Index of value to be copied.
+    @param newIndex Location of the copied value.
+  */
   void copyIndex(uint32_t oldIndex, uint32_t newIndex);
 };
 #endif

@@ -1,9 +1,19 @@
 #include "Filesystem.h"
 
-void clearBuffer(uint8_t *array, uint16_t length){
-  memset(array, '\0', length);
+/**
+  @brief Clear a contiguous buffer by refilling with the null character.
+
+  @param buffer Array to be cleared
+  @param length Number of entries  to clear
+*/
+void clearBuffer(uint8_t *buffer, uint16_t length){
+  memset(buffer, '\0', length);
 }
-// Return list of all files in root directory
+
+/**
+  @brief  Retrieve a file list of root directory.
+  @return An array of all files in the root directory of the SD card
+*/
 const char * listRootDir(){
     std::string DirList = "";
     uint16_t charsRead;
@@ -34,6 +44,12 @@ const char * listRootDir(){
 
     return DirList.c_str();
 }
+
+/**
+  @brief Convert a unsigned integer to a string.
+  @param number Input number
+  @return String version of the input number. 34 -> "34"
+*/
 std::string to_string(unsigned int number){
     std::string temp = "";
     while(number){
@@ -42,7 +58,15 @@ std::string to_string(unsigned int number){
     }
     return temp;
 }
-void readfile(uint8_t &client, uint8_t * filename){
+
+/**
+  @brief Read file and and send data to client
+  global vars used: WebSocketsServer server
+
+  @param client code corresponding to client
+  @param filename file to read
+*/
+void readfile(const uint8_t client, uint8_t * filename){
     if(strlen((const char *)filename) > 3) {
         File file = SD.open((const char *)filename);
         char temp;
@@ -56,7 +80,7 @@ void readfile(uint8_t &client, uint8_t * filename){
         // Retrieve the size of the file
         unsigned int data_Available = file.available();
 
-        // Move file point to the second line.
+        // Move file pointer to the second line.
         do {
             temp = file.read();
             if( temp == '\n' || temp == '\r'){
@@ -65,6 +89,7 @@ void readfile(uint8_t &client, uint8_t * filename){
         } while (file.available());
 
         data_Available = file.available();
+
         // Read the rest of the data and send it to the phone
         while(data_Available){
             clearBuffer(appDataBuffer, MAX_BUFFER_SIZE-1);
@@ -81,6 +106,14 @@ void readfile(uint8_t &client, uint8_t * filename){
         file.close();
     }
 }
+
+/**
+  @brief The first line of each file contains the amount of characters in the file.
+         Read the first line and return it.
+
+  @param fileptr Pointer to the given file.
+  @return File size, in characters, for the given file pointer.
+*/
 uint16_t readfileSize(File &file){
     uint16_t i =0;
     do {
@@ -95,16 +128,34 @@ uint16_t readfileSize(File &file){
     return i;
 }
 
+/**
+  @brief Extract a filename from a data buffer. Looks for the first '.' in the
+         buffer.
+  @param payload Data buffer received from Websocket Server
+  @return Extracted filename, contains up to three characters after the '.' found.
+          Default return: "default.txt"  if no '.' found in buffer.
+*/
 std::string extractFilename(uint8_t *payload){
     std::string filename;
 
-    // Retrieve the filename
+    // acquire the possition of the period that denotes the file extension
     char *occurrence = strchr((const char *)payload, '.');
+    if (occurrence == NULL) return "default.txt";
+
+    // save the filename plus the 3 characters (file extension) after the period.
     filename.assign((const char *) payload, (occurrence + 5) - (char *)(payload+1));
     return filename;
 }
-/* Write File*/
-void writefile(uint8_t client, const char *filename, uint8_t *payload, const char *suffix){
+
+/**
+  @brief Write payload data to a file in the SD card root directory
+
+  @param client Code number for the client.
+  @param filename Name of the file with no file extension
+  @param payload Data received from client
+  @param eofCode File extension
+*/
+void writefile(uint8_t client, const char *filename, uint8_t *payload, const char *eofCode){
 
     File file = SD.open(filename, FILE_WRITE);
 
@@ -120,11 +171,18 @@ void writefile(uint8_t client, const char *filename, uint8_t *payload, const cha
         deletefile(filename);
         return;
     }
-    if(!strcmp("EX1T", suffix)){
+    if(!strcmp("EX1T", eofCode)){
         server.sendTXT(client, "SUXS");
     }
     file.close();
 }
+
+/**
+  @brief Write payload data to a file in the SD card root directory
+
+  @param filename Name of the file with no file extension
+  @param payload Data received from client
+*/
 void writefile(const char *filename, const char *payload){
 
     File file = SD.open(filename, FILE_WRITE);
@@ -141,7 +199,15 @@ void writefile(const char *filename, const char *payload){
     }
     file.close();
 }
-/* Append to file to finish writing data. */
+
+/**
+  @brief Append data to existing file.
+
+  @param client Code number for the client.
+  @param filename Name of the file to be written.
+  @param payload Data received from the client.
+  @param eofCode End of file code
+*/
 void appendfile(uint8_t client, const char *filename, uint8_t *payload, const char *suffix){
     File file = SD.open(filename, FILE_APPEND);
 
@@ -162,6 +228,12 @@ void appendfile(uint8_t client, const char *filename, uint8_t *payload, const ch
     file.close();
 }
 
+/**
+  @brief Rename a file.
+
+  @param path1 File to be renamed
+  @param path2 New name for the file.
+*/
 void renamefile(const char *path1, const char *path2){
     if (SD.rename(path1, path2)) {
         Serial.println("File renamed");
@@ -170,6 +242,11 @@ void renamefile(const char *path1, const char *path2){
     }
 }
 
+/**
+  @brief Delete the file in the SD card.
+
+  @param path File to be deleted
+*/
 void deletefile(const char *path){
     if(SD.remove(path)){
         Serial.println("File deleted");
@@ -177,6 +254,13 @@ void deletefile(const char *path){
         Serial.println("Delete failed");
     }
 }
+
+/**
+  @brief Loads global variables with the frame sequence to be displayed by default.
+         Each line in the file corresponds to a global variable.
+  @param defaultData The content of the "DefaultDisplay.txt" file.
+  @return Boolean denoting the success of the read. "false" if errors occur, "true" otherwise.
+*/
 bool readDefaultFrames(const char * defaultData){
   char *ptr;
   ptr = strtok((char *)defaultData, "\n");
@@ -240,6 +324,14 @@ bool readDefaultFrames(const char * defaultData){
   }
   return true;
 }
+
+/**
+    @brief Encodes a single digit of a POSTNET "A" bar code.
+
+    @param digit the single digit to encode.
+    @return a bar code of the digit using "|" as the long
+    bar and "," as the half bar.
+*/
 void defaultInitialization() {
     height = 8;
     S_height = "8";
@@ -253,6 +345,14 @@ void defaultInitialization() {
     SlideSpeed = NULL;
     BlinkTime = NULL;
 }
+
+/**
+  @brief Read "DefaultDisplay.txt" in the Production folder. On successful read
+         it sends the data to readDefaultFrames to load data to global variables.
+
+         Loads global variables with default values in the event of incorrect "DefaultDisplay.txt"
+         data format.
+*/
 void StartUpDefaultFrame() {
     File file = SD.open("/Production/DefaultDisplay.txt");
     if(!file){
@@ -269,6 +369,10 @@ void StartUpDefaultFrame() {
     readDefaultFrames((const char *)appDataBuffer);
     file.close();
 }
+
+/**
+  @brief Clear the global std::string* arrays for default display loop.
+*/
 void resetFrameData(){
   delete[] Effects;
   delete[] DisplayTime;
@@ -284,6 +388,13 @@ void resetFrameData(){
   SlideSpeed = NULL;
   BlinkTime = NULL;
 }
+
+/**
+  @brief Resize the dynamic global arrays. Function is used when user changes display
+  size on the phone application.
+
+  @param arraySize The new size of the default display std::string* arrays.
+*/
 void updateFrameData(size_t arraySize){
   delete[] Effects;
   delete[] DisplayTime;
@@ -313,6 +424,13 @@ void updateFrameData(size_t arraySize){
 
   numSavedFrames = arraySize;
 }
+
+/**
+  @brief Clear the LED display buffer.
+
+  @param buffer The array to clear.
+
+*/
 void resetBuffer(uint32_t * buffer){
     memset(buffer, 0, matrix.NUM_LEDS);
 }
