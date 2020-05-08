@@ -16,74 +16,64 @@
 #define LED_RMT_TX_GPIO GPIO_NUM_26
 #define BITS_PER_LED_CMD 24
 
-#define T0H 16  // 0 bit high ticks at  40MHZ  ~ about 400 ns
-#define T0L 36  // 0 bit low  ticks at  40MHZ  ~ about 900 ns
-#define T1H 36  // 1 bit high ticks at  40MHZ  ~ about 900 ns
-#define T1L 24  // 1 bit low  ticks at  40MHZ  ~ about 600 ns
+#define T0H 16 // 0 bit high ticks at  40MHZ  ~ about 400 ns
+#define T0L 36 // 0 bit low  ticks at  40MHZ  ~ about 900 ns
+#define T1H 36 // 1 bit high ticks at  40MHZ  ~ about 900 ns
+#define T1L 24 // 1 bit low  ticks at  40MHZ  ~ about 600 ns
 
-class Esp32CtrlLed {
+class Esp32CtrlLed
+{
 public:
+    rmt_item32_t *LedData;
+    uint32_t NUM_LEDS;
+    size_t LED_BUFFER_SIZE;
+    gpio_num_t LED_CTRL_PIN;
 
-  rmt_item32_t *LedData;
-  uint32_t NUM_LEDS;
-  size_t LED_BUFFER_SIZE;
-  gpio_num_t LED_CTRL_PIN;
-  uint8_t Brightness;
+    Esp32CtrlLed(void);
+    Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin);
+    ~Esp32CtrlLed();
 
-  Esp32CtrlLed(void);
-  Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin);
-  Esp32CtrlLed(uint16_t NUM_LEDS, gpio_num_t pin, uint8_t brightness);
-  ~Esp32CtrlLed();
-
-  /**
+    /**
     @brief Set the pin number for the LED display data signal.
 
     @param pin Target pin for data signal.
   */
-  void setPin(gpio_num_t pin);
+    void setPin(gpio_num_t pin);
 
-  /**
-    @brief Set the brightness for the LED display. This is used as a ratio to
-    multiplied to color values later on.
-
-    @param brightness Brightness level to be used. range (1,255)
-  */
-  void setBrightness(uint8_t brightness);
-
-  /**
+    /**
     @brief Change the size of the dynamic LED array. This array holds the
     color levels to be written by the rmt peripheral.
 
     @param length New length of the LED array.
   */
-  void updateLength(uint32_t length);
+    void updateLength(uint32_t length);
 
-  /**
+    /**
       @brief Gets the input bit of the number, and returns it as a base ten unsigned int.
 
       @param number Input value.
       @param bit Target bit to be retrieved.
       @return Bit converted to base 10 value.
   */
-  uint8_t getNthBit(uint32_t number, uint8_t bit);
+    uint8_t getNthBit(uint32_t number, uint8_t bit);
 
-  /**
+    /**
       @brief Initialize the RMT peripheral. This function may only be called once.
   */
-  void ESP32_RMT_Init(void);
+    void ESP32_RMT_Init(void);
 
-  /**
+    /**
     @brief Write the LED Data in the to the WS2812 display. The RMT peripheral
     produces the data signal.
   */
-  void write_leds();
+    void write_leds();
 
-  /**
+    /**
     @brief Clear the LED display. Writes 0 for each of the RGB LED in a pixel.
   */
-  void resetLeds();
+    void resetLeds();
 
-  /**
+    /**
     @brief Set the data values for the pixel at the specific index.
 
     @param index The index of the LED in the LED array.
@@ -91,23 +81,23 @@ public:
     @param g The value for the green LED. ranges from 1 to 255
     @param b The value for the blue LED. ranges from 1 to 255
   */
-  void setPixelRGB(uint32_t index, uint8_t r, uint8_t g, uint8_t b);
+    void setPixelRGB(uint32_t index, uint8_t r, uint8_t g, uint8_t b);
 
-  /**
+    /**
     @brief Set the data values for the pixel at the specific index.
 
     @param index The index of the LED in the LED array.
     @param colorData The color for the specific pixel. Must formatted as 0x00RRGGBB
   */
-  void setPixelRGB(uint32_t index, uint32_t colorData);
+    void setPixelRGB(uint32_t index, uint32_t colorData);
 
-  /**
+    /**
     @brief Copy the LED pixel value of oldIndex into the new index.
     This is useful for shifting frames on the display.
 
     @param oldIndex Index of value to be copied.
     @param newIndex Location of the copied value.
   */
-  void copyIndex(uint32_t oldIndex, uint32_t newIndex);
+    void copyIndex(uint32_t oldIndex, uint32_t newIndex);
 };
 #endif

@@ -18,15 +18,17 @@ Network Pssword: "12345678"
 
 **Frame Creation**
 
-The following is a demo of the live input screen that allows for live drawing on the LED display.
+The following is a demo of the live input screen that allows for live drawing on
+the LED display.
 
 ![Live Input Demo](./images/Live-Input.gif)
 
 **Frame Sequences**
 
-The following is a demo of the default display screen. It allows for choosing a sequence of frames to display.
+The following is a demo of the default display screen. It allows for choosing a
+sequence of frames to display.
 
-![Default Display Demo](./images/Demo.gif)
+![Default Display Demo](./images/demo.gif)
 
 ## LED Display
 
@@ -55,13 +57,47 @@ grids across horizontally then going upwards. This is shown in the image below.
 ![Alt text](./images/16x16Matrix.png '16 x 16 Display with 8x8 Matrices')
 
 The application also supports single displays made from LED strips.
-In this case, the display can be made into a single _h_ x _w_ where _h_ is the # of LEDs along the height, and _w_ is the # of LEDs along the width.
+In this case, the display can be made into a single _h_ x _w_ where _h_ is the # of
+LEDs along the height, and _w_ is the # of LEDs along the width.
 
 ![Alt text](./images/Custom-CJMCU-9x9.png '9 x 9 LED Strip Matrix')
 
 ## Development
 
-The ESP32 software was written and developed using PlatformIO.
+### Command Line Interface
+
+To build a platformIO project via command line, [PlatformIO Core](https://docs.platformio.org/en/latest/core/index.html)
+is needed. Once installed the following commands may be used:
+
+```
+# Build project
+$ platformio run
+
+#upload firmware
+$ platformio run --target upload
+
+```
+
+**NOTE:** The target microcontroller must be recognized by the computer as a
+serial device in order for PlatformIO to recognize it when uploading.
+
+- On Windows this is detected as a COM PORT in the device manager
+- On both Mac and Linux, virtual COM PORT are usually recognized under /dev/.
+  - Use `ls /dev/tty*` to view the recognized USB devices.
+
+### PlatformIO IDE
+
+The ESP32 software was written and developed using [PlatformIO IDE](https://docs.platformio.org/en/latest/integration/ide/pioide.html).
+
+This package can be installed on VS Code, and aims to provide a cross platform
+build system for embedded, IoT applications. It integrates PlatformIO Core, so
+once installed, the command line interface will also be available after adding the executables'
+directory to PATH. See [PlatformIO's Install Shell Commands](https://docs.platformio.org/en/latest/core/installation.html#piocore-install-shell-commands) for more information.
+
+### Flashing the ESP32
+
+After compiling the project, and attempting to flash the ESP32, it is important to note that on some development boards, the "BOOT" press button must be pressed to
+allow the ESP32 to download the program.
 
 ## Electrical Connections
 
@@ -96,10 +132,18 @@ With that in mind, it is **important to note**, that the WS2812b should not be p
 from a microcontroller's 5 V VCC pin. The LED matrices must be powered directly from a power
 supply.
 
-## Flashing the ESP32
+## Limitations
 
-After compiling the project, when using platformIO it is important to note
-that the "debug" switch on the ESP32 must be pressed to allow flashing.
+The project only supports use of up to 1024 LEDS. Due to the use of the RMT peripheral in ["Esp32CrlLed.h"](./include/Esp32.CtrlLed.h), an array of size _n_ _x_ 24 _x_ 4 is needed, where _n_ is the total number of LEDs.
 
-The following link denotes how to write code for the neopixel:
+Due to the Max Heap allocation limit of about 117KB, a display of 1024 LEDs is the largest possible when using 8x8 matrices. When custom building a display via LED strips, the application may support up to 1200 LEDS.
+
+There are other libraries that support WS2812b LEDs such as [FastLED](https://github.com/FastLED/FastLED) , Adafruit's [NeoPixel Library](https://github.com/adafruit/Adafruit_NeoPixel).
+
+The following link illustrates a way to minimize the amount of RAM needed for a pixel, by generating the
+data signal via bit-banging on a GPIO pin.
+
 https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/
+
+**NOTE:** The library written in the article uses some assembly code for the arduino's
+AVR architecture. To use this idea with the ESP32 the code would need to be adapted.
