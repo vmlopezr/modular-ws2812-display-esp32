@@ -188,7 +188,6 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lengt
             //  Input state.
             else if (!strcmp("INPT", (const char *)appDataBuffer))
             {
-
                 receivedLiveInput(payload);
             }
             // Clears the display, and exits forces th LED driver task to exit to the default state.

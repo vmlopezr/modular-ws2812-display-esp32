@@ -6,6 +6,7 @@ Access Point and updates the display real time as well as allows for sequences
 to be set by default.
 
 The repository contains the source code for the ESP32 used in the project.
+
 The repository for the phone application can be found at:
 https://github.com/vmlopezr/modular-ws2812-display-app
 
@@ -114,6 +115,9 @@ The following diagram illustrates the pin connections used:
 
 **NOTE:** The Power MOSFET used in the demo above is one that was available at hand (originally used for small DC motors). It is rated for up to an output current of 1.5 A which is overkill for the data signal in this use case.
 
+**WARNING:** When working with power supplies and electrical wiring, it is important to
+follow the safety instructions and precautions provided by the supply.
+
 The following are other alternatives for the data signal:
 
 - Using the GPIO directly with the Data In. (The output is at the minimum limit for the Data In voltage)
@@ -122,21 +126,21 @@ The following are other alternatives for the data signal:
 
 ### Powering the Display
 
-The WS2812b LEDs in the Matrices and strips operate on +3.5 V - 5.3 V supply voltage.
+The WS2812b LEDs in the Matrices and strips operate on +3.5 V to +5.3 V supply voltage.
 
 At full brightness, with an supply voltage of 5 V, one LED is rated to draw up to 50 mA.
 As a result, a 64 LED Matrix would be rated to draw up to about 3 A. An appropriately
 rated power supply **must** be used when using these LEDs.
 
-With that in mind, it is **important to note**, that the WS2812b should not be powered directly
-from a microcontroller's 5 V VCC pin. The LED matrices must be powered directly from a power
+With that in mind, it is **IMPORTANT TO NOTE**, that the WS2812b should not be powered directly
+from a microcontroller's 5 V VCC pin. This will damage the pin and even the microcontroller as the pins are usually rated to 40 mA or lower. The LED matrices must be powered directly from a power
 supply.
 
 ## Limitations
 
 The project only supports use of up to 1024 LEDS. Due to the use of the RMT peripheral in ["Esp32CrlLed.h"](./include/Esp32.CtrlLed.h), an array of size _n_ _x_ 24 _x_ 4 is needed, where _n_ is the total number of LEDs.
 
-Due to the Max Heap allocation limit of about 117KB, a display of 1024 LEDs is the largest possible when using 8x8 matrices. When custom building a display via LED strips, the application may support up to 1200 LEDS.
+Due to the Max Heap allocation limit of about 113KB, a display of 1024 LEDs is the largest possible when using 8x8 matrices. When custom building a display via LED strips, the application may support up to 1024 LEDS.
 
 There are other libraries that support WS2812b LEDs such as [FastLED](https://github.com/FastLED/FastLED) , Adafruit's [NeoPixel Library](https://github.com/adafruit/Adafruit_NeoPixel).
 

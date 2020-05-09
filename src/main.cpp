@@ -113,7 +113,7 @@ void setup()
     matrix.ESP32_RMT_Init();
     matrix.resetLeds();
     matrix.write_leds();
-
+    Serial.printf("max alloc: %d heapsize: %d\n", ESP.getMaxAllocHeap(), ESP.getHeapSize());
     /* Code below to be used for access point.
   * Connect to Wi-Fi network with SSID and password
   */
@@ -125,14 +125,15 @@ void setup()
     Serial.print("AP IP address: ");
     Serial.println(IP);
 
-    // /* The following section is used for connecting to network wifi*/
+    /* The following section is used for connecting to network wifi*/
     // Using wifi connection for phone app testing
     // WiFi.begin("WIFI Network", "NETWORK_PASSWORD");
-    // while (WiFi.status() != WL_CONNECTED) {
-    //   delay(1000);
-    //   Serial.println("Connecting to WiFi..");
+    // while (WiFi.status() != WL_CONNECTED)
+    // {
+    //     delay(1000);
+    //     Serial.println("Connecting to WiFi..");
     // }
-    // HTTP access points
+    // // HTTP access points
     // Serial.println(WiFi.localIP());
 
     // Start WebSocket server and assign callback

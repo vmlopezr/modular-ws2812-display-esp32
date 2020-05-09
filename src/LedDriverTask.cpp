@@ -70,7 +70,6 @@ void LedDriverTask(void *parameter)
             // The PIXL animation may be used for verifying LED Matrix connections.
             else if (!strcmp("ANIM", (const char *)stateMachine))
             {
-
                 animationDisplayState();
             }
             // The open state will display the frame. Then change the statemachine to
@@ -87,11 +86,11 @@ void LedDriverTask(void *parameter)
             }
             else if (!strcmp("LIVE", (const char *)stateMachine))
             {
-                void listenLiveInputState();
+                listenLiveInputState();
             }
             else if (!strcmp("CLRI", (const char *)stateMachine))
             {
-                void clearLiveInputDisplay();
+                clearLiveInputDisplay();
             }
         }
         delay(1);
@@ -344,7 +343,7 @@ void animationDisplayState()
             prev = newindex;
             newindex++;
         }
-        delay(10);
+        delay(50);
     }
     newindex = 0;
     prev = 0;
@@ -505,6 +504,7 @@ void shiftByColumn(const size_t currentCol, const size_t frameIndex)
  */
 void shiftByRow(const size_t currentRow, const size_t frameIndex)
 {
+
     if (numSavedFrames > 1 && currentRow == 0)
     {
         if (frameIndex == 0 || frameIndex < numSavedFrames - 1)
